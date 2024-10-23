@@ -1,15 +1,15 @@
 {
-  "name": "@ago-dev/nx-aws-cdk-v2",
+  "name": "@wolsok/nx-aws-cdk-v2",
   "description": "nx aws-cdk-v2 plugin",
   "author": {
-    "name": "Adrian Görisch",
-    "email": "github@ago-dev.org"
+    "name": "Wolfram Sokollek",
+    "email": "wolframsokollek+github@gmail.com"
   },
   "license": "MIT",
-  "homepage": "https://github.com/ago-devlab/nx-plugins",
+  "homepage": "https://angularexamples.wolsok.de",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/adrian-goe/nx-aws-cdk-v2"
+    "url": "git+https://github.com/WolfSoko/nx-aws-cdk-v2"
   },
   "scripts": {
     "nx": "nx",
