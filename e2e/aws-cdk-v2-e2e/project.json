@@ -12,6 +12,5 @@
       }
     }
   },
-  "tags": [],
-  "implicitDependencies": ["aws-cdk-v2"]
+  "tags": []
 }
