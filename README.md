@@ -1,9 +1,9 @@
 [![standard-readme compliant](https://img.shields.io/badge/standard--readme-OK-green.svg?style=flat-square)](https://github.com/RichardLitt/standard-readme)
-[![@ago-dev/nx-aws-cdk-v2](https://img.shields.io/badge/%40adrian--goe-nx--aws--cdk-green)](https://github.com/adrian-goe/nx-aws-cdk-v2/tree/main/packages/aws-cdk-v2)
+[![@wolsok/nx-aws-cdk-v2](https://img.shields.io/badge/%40adrian--goe-nx--aws--cdk-green)](https://github.com/adrian-goe/nx-aws-cdk-v2/tree/main/packages/aws-cdk-v2)
 [![Typescript](https://badgen.net/badge/icon/typescript?icon=typescript&label)](https://www.typescriptlang.org/)
-[![LICENSE](https://img.shields.io/npm/l/@ago-dev/nx-aws-cdk-v2.svg)](https://www.npmjs.com/package/@ago-dev/nx-aws-cdk-v2)
-[![npm version](https://img.shields.io/npm/v/@ago-dev/nx-aws-cdk-v2.svg)](https://www.npmjs.com/package/@ago-dev/nx-aws-cdk-v2)
-[![Downloads](https://img.shields.io/npm/dm/@ago-dev/nx-aws-cdk-v2.svg)](https://www.npmjs.com/package/@ago-dev/nx-aws-cdk-v2)
+[![LICENSE](https://img.shields.io/npm/l/@wolsok/nx-aws-cdk-v2.svg)](https://www.npmjs.com/package/@wolsok/nx-aws-cdk-v2)
+[![npm version](https://img.shields.io/npm/v/@wolsok/nx-aws-cdk-v2.svg)](https://www.npmjs.com/package/@wolsok/nx-aws-cdk-v2)
+[![Downloads](https://img.shields.io/npm/dm/@wolsok/nx-aws-cdk-v2.svg)](https://www.npmjs.com/package/@wolsok/nx-aws-cdk-v2)
 
 <hr>
 
@@ -24,7 +24,7 @@ An nx plugin for the aws-cdk
 
 | Plugin                                                      | Description                                                                                   |
 | ----------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| [`@ago-dev/nx-aws-cdk-v2`](./packages/aws-cdk-v2/README.md) | An Nx plugin for developing [aws-cdk](https://docs.aws.amazon.com/cdk/latest/guide/home.html) |
+| [`@wolsok/nx-aws-cdk-v2`](./packages/aws-cdk-v2/README.md) | An Nx plugin for developing [aws-cdk](https://docs.aws.amazon.com/cdk/latest/guide/home.html) |
 
 ## Maintainers
 

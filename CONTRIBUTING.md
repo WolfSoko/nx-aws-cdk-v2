@@ -76,13 +76,13 @@ npm link
 Finally, in the project that you want to test, run:
 
 ```
-yarn link @ago-dev/{plugin}
+yarn link @wolsok/{plugin}
 ```
 
 Or:
 
 ```
-npm link @ago-dev/{plugin}
+npm link @wolsok/{plugin}
 ```
 
 # Pull Requests

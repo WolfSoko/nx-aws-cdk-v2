@@ -3,20 +3,20 @@ import { logger } from '@nx/devkit';
 
 describe('aws-cdk-v2 e2e', () => {
   beforeAll(() => {
-    ensureNxProject('@ago-dev/nx-aws-cdk-v2', 'dist/packages/aws-cdk-v2');
+    ensureNxProject('@wolsok/nx-aws-cdk-v2', 'dist/packages/aws-cdk-v2');
   });
 
   it('should create aws-cdk', async () => {
     const plugin = uniq('aws-cdk-v2');
 
-    await runNxCommandAsync(`generate @ago-dev/nx-aws-cdk-v2:application ${plugin}`);
+    await runNxCommandAsync(`generate @wolsok/nx-aws-cdk-v2:application ${plugin}`);
   }, 120000);
 
   describe('--directory', () => {
     it('should create src in the specified directory', async () => {
       const plugin = uniq('aws-cdk-v2');
 
-      await runNxCommandAsync(`generate @ago-dev/nx-aws-cdk-v2:application ${plugin} --directory subdir`);
+      await runNxCommandAsync(`generate @wolsok/nx-aws-cdk-v2:application ${plugin} --directory subdir`);
       expect(() => checkFilesExist(`apps/subdir/${plugin}/src/main.ts`)).not.toThrow();
     }, 120000);
   });
@@ -25,7 +25,7 @@ describe('aws-cdk-v2 e2e', () => {
     it('should add tags to the project', async () => {
       const plugin = uniq('aws-cdk-v2');
 
-      await runNxCommandAsync(`generate @ago-dev/nx-aws-cdk-v2:application ${plugin} --tags e2etag,e2ePackage`);
+      await runNxCommandAsync(`generate @wolsok/nx-aws-cdk-v2:application ${plugin} --tags e2etag,e2ePackage`);
       const nxJson = readJson(`apps/${plugin}/project.json`);
       expect(nxJson.tags).toEqual(['e2etag', 'e2ePackage']);
     }, 120000);
@@ -39,7 +39,7 @@ describe('aws-cdk-v2 e2e', () => {
     it('should try to bootstrap', async () => {
       const plugin = uniq('aws-cdk-v2');
 
-      await runNxCommandAsync(`generate @ago-dev/nx-aws-cdk-v2:application ${plugin} --tags e2etag,e2ePackage`);
+      await runNxCommandAsync(`generate @wolsok/nx-aws-cdk-v2:application ${plugin} --tags e2etag,e2ePackage`);
       await runNxCommandAsync(`bootstrap ${plugin} --profile=test123`);
       expect(logger.debug).toHaveBeenLastCalledWith(
         `Executing command: node ${process.env.NX_WORKSPACE_ROOT}/node_modules/aws-cdk/bin/cdk.js bootstrap ${plugin} --profile=test123`
@@ -49,7 +49,7 @@ describe('aws-cdk-v2 e2e', () => {
     it('should try to bootstrap with aws environments', async () => {
       const plugin = uniq('aws-cdk-v2');
 
-      await runNxCommandAsync(`generate @ago-dev/nx-aws-cdk-v2:application ${plugin} --tags e2etag,e2ePackage`);
+      await runNxCommandAsync(`generate @wolsok/nx-aws-cdk-v2:application ${plugin} --tags e2etag,e2ePackage`);
       await runNxCommandAsync(`bootstrap ${plugin} aws://123456789012/us-east-1`);
       expect(logger.debug).toHaveBeenLastCalledWith(
         `Executing command: node ${process.env.NX_WORKSPACE_ROOT}/node_modules/aws-cdk/bin/cdk.js bootstrap aws://123456789012/us-east-1`

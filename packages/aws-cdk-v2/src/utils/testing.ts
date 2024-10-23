@@ -12,14 +12,14 @@ export function mockExecutorContext(executorName: string, workspaceVersion = 2):
           root: 'apps/proj',
           targets: {
             test: {
-              executor: `@ago-dev/nx-aws-cdk-v2:${executorName}`,
+              executor: `@wolsok/nx-aws-cdk-v2:${executorName}`,
             },
           },
         },
       },
     },
     target: {
-      executor: `@ago-dev/nx-aws-cdk-v2:${executorName}`,
+      executor: `@wolsok/nx-aws-cdk-v2:${executorName}`,
     },
     isVerbose: true,
   };
