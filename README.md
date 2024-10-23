@@ -44,7 +44,7 @@ This project is MIT licensed 2022 Adrian Görisch
 
 ## Special thanks
 
-This Project is based on [@tienne](https://github.com/tienne)'s
-[nx-plugins](https://github.com/codebrewlab/nx-plugins).
+This Project is based on [@adrian-goe]https://github.com/adrian-goe)'s
+[nx-plugins](https://github.com/adrian-goe/nx-aws-cdk-v2).
 
-Also thanks to [@therk](https://github.com/therk) for his work on migrating to cdk v2.
+
