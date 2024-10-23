@@ -1,5 +1,5 @@
 [![standard-readme compliant](https://img.shields.io/badge/standard--readme-OK-green.svg?style=flat-square)](https://github.com/RichardLitt/standard-readme)
-[![@wolsok/nx-aws-cdk-v2](https://img.shields.io/badge/%40adrian--goe-nx--aws--cdk-green)](https://github.com/adrian-goe/nx-aws-cdk-v2/tree/main/packages/aws-cdk-v2)
+[![@wolsok/nx-aws-cdk-v2](https://img.shields.io/badge/%40adrian--goe-nx--aws--cdk-green)](https://github.com/WolfSoko/nx-aws-cdk-v2/tree/main/packages/aws-cdk-v2)
 [![Typescript](https://badgen.net/badge/icon/typescript?icon=typescript&label)](https://www.typescriptlang.org/)
 [![LICENSE](https://img.shields.io/npm/l/@wolsok/nx-aws-cdk-v2.svg)](https://www.npmjs.com/package/@wolsok/nx-aws-cdk-v2)
 [![npm version](https://img.shields.io/npm/v/@wolsok/nx-aws-cdk-v2.svg)](https://www.npmjs.com/package/@wolsok/nx-aws-cdk-v2)
@@ -75,7 +75,7 @@ nx bootstrap myApp aws://123456789012/us-east-1
 
 ## Maintainers
 
-[@adrian-goe](https://github.com/adrian-goe)
+[@WolfSoko](https://github.com/WolfSoko)
 
 ## Contributing
 

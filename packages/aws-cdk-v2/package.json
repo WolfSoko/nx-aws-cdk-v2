@@ -18,7 +18,7 @@
   "author": "Adrian Görisch",
   "repository": {
     "type": "git",
-    "url": "git@github.com:adrian-goe/nx-aws-cdk-v2"
+    "url": "git@github.com:WolfSoko/nx-aws-cdk-v2"
   },
   "license": "MIT"
 }
