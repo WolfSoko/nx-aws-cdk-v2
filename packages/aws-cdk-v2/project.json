@@ -3,6 +3,7 @@
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "packages/aws-cdk-v2/src",
   "projectType": "library",
+  "tags": [],
   "targets": {
     "build": {
       "executor": "@nx/js:tsc",
@@ -52,10 +53,8 @@
       "executor": "@nx/jest:jest",
       "outputs": ["coverage/packages/aws-cdk-v2"],
       "options": {
-        "jestConfig": "packages/aws-cdk-v2/jest.config.ts",
-        "passWithNoTests": true
+        "jestConfig": "packages/aws-cdk-v2/jest.config.ts"
       }
     }
-  },
-  "tags": []
+  }
 }
