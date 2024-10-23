@@ -39,5 +39,21 @@
   "parallel": 1,
   "useInferencePlugins": false,
   "defaultBase": "master",
-  "useLegacyCache": true
+  "useLegacyCache": true,
+  "plugins": [
+    {
+      "plugin": "@nx/jest/plugin",
+      "options": {
+        "targetName": "test"
+      },
+      "include": ["packages/aws-cdk-v2/**/*"]
+    },
+    {
+      "plugin": "@nx/eslint/plugin",
+      "options": {
+        "targetName": "lint"
+      },
+      "include": ["packages/aws-cdk-v2/**/*"]
+    }
+  ]
 }

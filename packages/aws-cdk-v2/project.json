@@ -38,22 +38,28 @@
       }
     },
     "lint": {
-      "executor": "@nx/linter:eslint",
-      "outputs": ["{options.outputFile}"],
       "options": {
-        "lintFilePatterns": [
-          "packages/aws-cdk-v2/**/*.ts",
-          "packages/aws-cdk-v2/generators.json",
-          "packages/aws-cdk-v2/executors.json",
-          "packages/aws-cdk-v2/package.json"
-        ]
+        "args": ["**/*.ts", "generators.json", "executors.json", "package.json"]
       }
     },
     "test": {
-      "executor": "@nx/jest:jest",
-      "outputs": ["coverage/packages/aws-cdk-v2"],
+      "inputs": [
+        "default",
+        "^default",
+        "{workspaceRoot}/jest.preset.js",
+        {
+          "externalDependencies": ["jest"]
+        }
+      ],
+      "outputs": ["{workspaceRoot}\\coverage\\packages\\aws-cdk-v2"],
       "options": {
-        "jestConfig": "packages/aws-cdk-v2/jest.config.ts"
+        "passWithNoTests": true
+      },
+      "configurations": {
+        "ci": {
+          "ci": true,
+          "coverage": true
+        }
       }
     }
   }
