@@ -37,15 +37,6 @@
       ],
       "default": "jest"
     },
-    "linter": {
-      "description": "The tool to use for running lint checks.",
-      "type": "string",
-      "enum": [
-        "eslint",
-        "tslint"
-      ],
-      "default": "eslint"
-    },
     "setParserOptionsProject": {
       "type": "boolean",
       "description": "Whether or not to configure the ESLint \"parserOptions.project\" option. We do not do this by default for lint performance reasons.",

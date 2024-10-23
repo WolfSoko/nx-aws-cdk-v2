@@ -54,7 +54,6 @@ Options:
   --directory                A directory where the project is placed
   --skipFormat               Skip formatting files
   --unitTestRunner           Adds the specified unit test runner (default: jest)
-  --linter                   The tool to use for running lint checks. (default: eslint)
   --setParserOptionsProject  Whether or not to configure the ESLint "parserOptions.project" option. We do not do this by default for lint performance reasons.
   --dryRun                   Runs through and reports activity without writing to disk.
   --skip-nx-cache            Skip the use of Nx cache.
