@@ -1,11 +1,4 @@
 {
-  "implicitDependencies": {
-    "package.json": {
-      "dependencies": "*",
-      "devDependencies": "*"
-    },
-    ".eslintrc.json": "*"
-  },
   "workspaceLayout": {
     "appsDir": "e2e",
     "libsDir": "packages"
