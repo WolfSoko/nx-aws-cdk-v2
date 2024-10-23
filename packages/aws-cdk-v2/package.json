@@ -15,7 +15,7 @@
     "requirements": {},
     "migrations": "./migrations.json"
   },
-  "author": "Adrian Görisch",
+  "author": "Wolfram Sokollek",
   "repository": {
     "type": "git",
     "url": "git@github.com:WolfSoko/nx-aws-cdk-v2"

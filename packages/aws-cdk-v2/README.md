@@ -87,7 +87,7 @@ If editing the README, please conform to the [standard-readme](https://github.co
 
 ## License
 
-This project is MIT licensed 2022 Adrian Görisch
+This project is MIT licensed 2022 Wolfram Sokollek
 
 ## Special thanks
 
