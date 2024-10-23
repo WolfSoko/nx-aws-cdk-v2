@@ -5,7 +5,8 @@ export function mockExecutorContext(executorName: string, workspaceVersion = 2):
     projectName: 'proj',
     root: '/root',
     cwd: '/root',
-    workspace: {
+    nxJsonConfiguration: {},
+    projectsConfigurations: {
       version: workspaceVersion,
       projects: {
         proj: {
@@ -18,6 +19,7 @@ export function mockExecutorContext(executorName: string, workspaceVersion = 2):
         },
       },
     },
+    projectGraph: { nodes: {}, dependencies: {} },
     target: {
       executor: `@wolsok/nx-aws-cdk-v2:${executorName}`,
     },

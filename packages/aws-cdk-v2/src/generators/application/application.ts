@@ -6,18 +6,15 @@ import {
   generateFiles,
   GeneratorCallback,
   getWorkspaceLayout,
-  joinPathFragments,
   names,
   offsetFromRoot,
   ProjectConfiguration,
-  readWorkspaceConfiguration,
-  Tree,
-  updateJson,
+  readProjectConfiguration,
   runTasksInSerial,
-  updateWorkspaceConfiguration,
+  Tree,
+  updateProjectConfiguration,
 } from '@nx/devkit';
-import { jestProjectGenerator } from '@nx/jest';
-import { Linter, lintProjectGenerator } from '@nx/linter';
+import { configurationGenerator } from '@nx/jest';
 
 import { ApplicationSchema } from './schema';
 import { initGenerator } from '../init/init';
@@ -42,7 +39,6 @@ function normalizeOptions(host: Tree, options: ApplicationSchema): NormalizedSch
     projectRoot,
     projectDirectory,
     parsedTags,
-    linter: options.linter ?? Linter.EsLint,
     unitTestRunner: options.unitTestRunner ?? 'jest',
   };
 }
@@ -67,29 +63,6 @@ function addJestFiles(host: Tree, options: NormalizedSchema) {
   };
   generateFiles(host, path.join(__dirname, 'jest-files'), options.projectRoot, templateOptions);
 }
-async function addLintingToApplication(tree: Tree, options: NormalizedSchema): Promise<GeneratorCallback> {
-  return await lintProjectGenerator(tree, {
-    linter: options.linter,
-    project: options.projectName,
-    tsConfigPaths: [joinPathFragments(options.projectRoot, 'tsconfig.*?.json')],
-    eslintFilePatterns: [`${options.projectRoot}/**/*.ts`],
-    skipFormat: true,
-    setParserOptionsProject: options.setParserOptionsProject,
-  });
-}
-
-function updateLintConfig(tree: Tree, options: NormalizedSchema) {
-  updateJson(tree, `${options.projectRoot}/.eslintrc.json`, (json) => {
-    json.plugins = json?.plugins || [];
-    const plugins: string[] = json.plugins;
-
-    const hasCdkPlugin = plugins.findIndex((row) => row === 'cdk') >= 0;
-    if (!hasCdkPlugin) {
-      plugins.push('cdk');
-    }
-    return json;
-  });
-}
 
 export async function applicationGenerator(host: Tree, options: ApplicationSchema) {
   const tasks: GeneratorCallback[] = [];
@@ -107,34 +80,28 @@ export async function applicationGenerator(host: Tree, options: ApplicationSchem
     sourceRoot: `${normalizedOptions.projectRoot}/src`,
     targets: {
       deploy: {
-        executor: '@wolsok/nx-aws-cdk-v2:deploy',
+        executor: '@ago-dev/nx-aws-cdk-v2:deploy',
         options: {},
       },
       destroy: {
-        executor: '@wolsok/nx-aws-cdk-v2:destroy',
+        executor: '@ago-dev/nx-aws-cdk-v2:destroy',
         options: {},
       },
       bootstrap: {
-        executor: '@wolsok/nx-aws-cdk-v2:bootstrap',
+        executor: '@ago-dev/nx-aws-cdk-v2:bootstrap',
         options: {},
       },
     },
     tags: normalizedOptions.parsedTags,
   };
   addProjectConfiguration(host, normalizedOptions.projectName, project);
-  const workspace = readWorkspaceConfiguration(host);
+  const workspace = readProjectConfiguration(host, normalizedOptions.projectName);
 
-  updateWorkspaceConfiguration(host, workspace);
+  updateProjectConfiguration(host, normalizedOptions.projectName, workspace);
   addFiles(host, normalizedOptions);
 
-  if (normalizedOptions.linter !== Linter.None) {
-    const lintTask = await addLintingToApplication(host, normalizedOptions);
-    tasks.push(lintTask);
-    updateLintConfig(host, normalizedOptions);
-  }
-
   if (normalizedOptions.unitTestRunner === 'jest') {
-    const jestTask = await jestProjectGenerator(host, {
+    const jestTask = await configurationGenerator(host, {
       project: normalizedOptions.projectName,
       setupFile: 'none',
       skipSerializers: true,
@@ -153,5 +120,6 @@ export async function applicationGenerator(host: Tree, options: ApplicationSchem
 
   return runTasksInSerial(...tasks);
 }
+
 export default applicationGenerator;
 export const applicationSchematic = convertNxGenerator(applicationGenerator);
