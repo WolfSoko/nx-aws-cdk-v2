@@ -1,32 +1,15 @@
 {
-  "workspaceLayout": {
-    "appsDir": "e2e",
-    "libsDir": "packages"
-  },
+  "workspaceLayout": { "appsDir": "e2e", "libsDir": "packages" },
   "$schema": "./node_modules/nx/schemas/nx-schema.json",
   "targetDefaults": {
-    "build": {
-      "dependsOn": ["^build"],
-      "cache": true
-    },
-    "lint": {
-      "cache": true
-    },
-    "e2e": {
-      "cache": true
-    },
+    "build": { "dependsOn": ["^build"], "cache": true },
+    "lint": { "cache": true },
+    "e2e": { "cache": true },
     "@nx/jest:jest": {
       "cache": true,
       "inputs": ["default", "^default", "{workspaceRoot}/jest.preset.js"],
-      "options": {
-        "passWithNoTests": true
-      },
-      "configurations": {
-        "ci": {
-          "ci": true,
-          "codeCoverage": true
-        }
-      }
+      "options": { "passWithNoTests": true },
+      "configurations": { "ci": { "ci": true, "codeCoverage": true } }
     }
   },
   "parallel": 1,
@@ -34,19 +17,8 @@
   "defaultBase": "master",
   "useLegacyCache": true,
   "plugins": [
-    {
-      "plugin": "@nx/jest/plugin",
-      "options": {
-        "targetName": "test"
-      },
-      "include": ["packages/aws-cdk-v2/**/*"]
-    },
-    {
-      "plugin": "@nx/eslint/plugin",
-      "options": {
-        "targetName": "lint"
-      },
-      "include": ["packages/aws-cdk-v2/**/*"]
-    }
-  ]
+    { "plugin": "@nx/jest/plugin", "options": { "targetName": "test" }, "include": ["packages/aws-cdk-v2/**/*"] },
+    { "plugin": "@nx/eslint/plugin", "options": { "targetName": "lint" }, "include": ["packages/aws-cdk-v2/**/*"] }
+  ],
+  "nxCloudId": "671a4aa0e85b0ab04b22bbf3"
 }
