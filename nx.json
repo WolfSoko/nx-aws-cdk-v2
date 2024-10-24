@@ -4,6 +4,21 @@
     "libsDir": "packages"
   },
   "$schema": "./node_modules/nx/schemas/nx-schema.json",
+  "namedInputs": {
+    "default": ["{projectRoot}/**/*"],
+    "production": [
+      "default",
+      "!{projectRoot}/**/*.spec.[jt]s",
+      "!{projectRoot}/tsconfig.*spec.json",
+      "!{projectRoot}/**/?(*.)+(spec|test).[jt]s?(x)?(.snap)",
+      "!{projectRoot}/jest.config.[jt]s",
+      "!{projectRoot}/.storybook/**/*",
+      "!{projectRoot}/src/*test-setup.[jt]s",
+      "!{projectRoot}/tsconfig.spec.json",
+      "!{projectRoot}/eslint.config.js"
+    ],
+    "globals": []
+  },
   "targetDefaults": {
     "build": {
       "dependsOn": ["^build"],
@@ -31,8 +46,8 @@
     }
   },
   "parallel": 1,
-  "useInferencePlugins": false,
-  "defaultBase": "master",
+  "useInferencePlugins": true,
+  "defaultBase": "main",
   "useLegacyCache": true,
   "plugins": [
     {
