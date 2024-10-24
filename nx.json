@@ -71,7 +71,7 @@
       "options": {
         "targetName": "lint"
       },
-      "include": ["packages/aws-cdk-v2/**/*"]
+      "include": ["**/*"]
     }
   ],
   "nxCloudId": "671a4aa0e85b0ab04b22bbf3"
