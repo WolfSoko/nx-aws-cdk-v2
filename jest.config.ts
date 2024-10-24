@@ -1,5 +1,5 @@
-const { getJestProjects } = require('@nx/jest');
+import { getJestProjectsAsync } from '@nx/jest';
 
-export default {
-  projects: [...getJestProjects(), '<rootDir>/e2e/aws-cdk-v2-e2e/test'],
-};
+export default async () => ({
+  projects: [...(await getJestProjectsAsync())],
+});

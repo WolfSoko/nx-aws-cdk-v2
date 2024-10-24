@@ -1,10 +1,11 @@
 import { checkFilesExist, ensureNxProject, readJson, runNxCommandAsync, uniq } from '@nx/plugin/testing';
 import { logger } from '@nx/devkit';
+import * as path from 'node:path';
 
 describe('aws-cdk-v2 e2e', () => {
-  beforeAll(() => {
-    ensureNxProject('@wolsok/nx-aws-cdk-v2', 'dist/packages/aws-cdk-v2');
-  });
+  beforeAll(async () => {
+    ensureNxProject('@wolsok/nx-aws-cdk-v2', path.join('dist/packages/aws-cdk-v2'));
+  }, 120000);
 
   it('should create aws-cdk', async () => {
     const plugin = uniq('aws-cdk-v2');
@@ -17,7 +18,7 @@ describe('aws-cdk-v2 e2e', () => {
       const plugin = uniq('aws-cdk-v2');
 
       await runNxCommandAsync(`generate @wolsok/nx-aws-cdk-v2:application ${plugin} --directory subdir`);
-      expect(() => checkFilesExist(`apps/subdir/${plugin}/src/main.ts`)).not.toThrow();
+      expect(() => checkFilesExist(`subdir/${plugin}/src/main.ts`)).not.toThrow();
     }, 120000);
   });
 
@@ -26,7 +27,7 @@ describe('aws-cdk-v2 e2e', () => {
       const plugin = uniq('aws-cdk-v2');
 
       await runNxCommandAsync(`generate @wolsok/nx-aws-cdk-v2:application ${plugin} --tags e2etag,e2ePackage`);
-      const nxJson = readJson(`apps/${plugin}/project.json`);
+      const nxJson = readJson(`${plugin}/project.json`);
       expect(nxJson.tags).toEqual(['e2etag', 'e2ePackage']);
     }, 120000);
   });
