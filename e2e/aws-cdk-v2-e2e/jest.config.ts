@@ -1,4 +1,6 @@
-module.exports = {
+import { JestConfigWithTsJest } from 'ts-jest';
+
+export default {
   displayName: 'aws-cdk-v2-e2e',
   preset: '../../jest.preset.js',
   globals: {
@@ -11,4 +13,4 @@ module.exports = {
   },
   moduleFileExtensions: ['ts', 'js', 'html'],
   coverageDirectory: '../../coverage/e2e/aws-cdk-v2-e2e',
-};
+} as JestConfigWithTsJest;
