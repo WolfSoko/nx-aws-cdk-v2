@@ -26,8 +26,7 @@ export async function initGenerator(host: Tree, options: InitGeneratorSchema) {
       'aws-cdk-lib': CDK_VERSION,
       constructs: CDK_CONSTRUCTS_VERSION,
     },
-    {
-    }
+    {}
   );
 
   if (!schema.skipFormat) {

@@ -22,8 +22,8 @@ An nx plugin for the aws-cdk
 
 ## Plugin
 
-| Plugin                                                      | Description                                                                                   |
-| ----------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| Plugin                                                     | Description                                                                                   |
+| ---------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
 | [`@wolsok/nx-aws-cdk-v2`](./packages/aws-cdk-v2/README.md) | An Nx plugin for developing [aws-cdk](https://docs.aws.amazon.com/cdk/latest/guide/home.html) |
 
 ## Maintainers
@@ -40,11 +40,9 @@ If editing the README, please conform to the [standard-readme](https://github.co
 
 ## License
 
-This project is MIT licensed 2022 Wolfram Sokollek 
+This project is MIT licensed 2022 Wolfram Sokollek
 
 ## Special thanks
 
 This Project is based on [@adrian-goe]https://github.com/adrian-goe)'s
 [nx-plugins](https://github.com/adrian-goe/nx-aws-cdk-v2).
-
-
