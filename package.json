@@ -34,7 +34,7 @@
     "@angular-devkit/core": "18.2.10",
     "@angular-devkit/schematics": "18.2.10",
     "@commitlint/cli": "19.5.0",
-    "@eslint/eslintrc": "^2.1.1",
+    "@eslint/eslintrc": "^3.0.0",
     "@eslint/js": "~8.57.0",
     "@nx/devkit": "20.0.6",
     "@nx/eslint": "^20.0.3",
