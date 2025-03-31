@@ -21,9 +21,9 @@ export function generateCommandString(command: string, appPath: string) {
 
   const projectPath = path.join(NX_WORKSPACE_ROOT, appPath);
   const moduleType = getModuleType(projectPath);
-  const esmCommandPart = moduleType === 'module' ? '--loader ts-node/esm' : '';
+  const tsNodePart = moduleType === 'module' ? '--loader ts-node/esm' : 'ts-node';
 
-  const generatePath = `"${packageManagerExecutor} ts-node ${esmCommandPart} --require tsconfig-paths/register --project ${path.join(projectPath, 'tsconfig.app.json')} ${path.join(projectPath, '/src/main.ts')}"`;
+  const generatePath = `"${packageManagerExecutor} ${tsNodePart} --require tsconfig-paths/register --project ${path.join(projectPath, 'tsconfig.app.json')} ${path.join(projectPath, '/src/main.ts')}"`;
   return `node --require ts-node/register ${path.join(NX_WORKSPACE_ROOT, 'node_modules/aws-cdk/bin/cdk')} -a ${generatePath} ${command}`;
 }
 
@@ -110,8 +110,11 @@ export function runCommandProcess(command: string, cwd: string): Promise<boolean
 function getModuleType(projectPath: string) {
   const packageJsonPath = path.join(NX_WORKSPACE_ROOT, projectPath, 'package.json');
   const appPackageJson = getPackageJson(packageJsonPath);
-  if (appPackageJson) {
+  if (appPackageJson?.type) {
+    console.log('App Package Json', appPackageJson.type);
     return appPackageJson.type;
   }
-  return getPackageJson(path.join(NX_WORKSPACE_ROOT, 'package.json')).type;
+  const globalPackageJson = getPackageJson(path.join(NX_WORKSPACE_ROOT, 'package.json'));
+  console.log('Global Package Json', globalPackageJson.type);
+  return globalPackageJson.type;
 }
