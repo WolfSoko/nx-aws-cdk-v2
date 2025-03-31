@@ -20,19 +20,21 @@ export function generateCommandString(command: string, appPath: string) {
   const packageManagerExecutor = packageManager === 'npm' ? 'npx' : packageManager;
 
   const projectPath = path.join(NX_WORKSPACE_ROOT, appPath);
-  const packageJsonPath = path.join(NX_WORKSPACE_ROOT, projectPath, 'package.json');
-  const isEsm = getPackageJson(packageJsonPath).type === 'module';
-  const esmCommandPart = isEsm ? '--loader ts-node/esm' : '';
+  const moduleType = getModuleType(projectPath);
+  const esmCommandPart = moduleType === 'module' ? '--loader ts-node/esm' : '';
 
-  const generatePath = `"${packageManagerExecutor} ts-node ${esmCommandPart} --require tsconfig-paths/register --project ${projectPath}/tsconfig.app.json ${projectPath}/src/main.ts"`;
-  return `node --require ts-node/register ${NX_WORKSPACE_ROOT}/node_modules/aws-cdk/bin/cdk -a ${generatePath} ${command}`;
+  const generatePath = `"${packageManagerExecutor} ts-node ${esmCommandPart} --require tsconfig-paths/register --project ${path.join(projectPath, 'tsconfig.app.json')} ${path.join(projectPath, '/src/main.ts')}"`;
+  return `node --require ts-node/register ${path.join(NX_WORKSPACE_ROOT, 'node_modules/aws-cdk/bin/cdk')} -a ${generatePath} ${command}`;
 }
 
 export function parseArgs(options: DeployExecutorSchema | BootstrapExecutorSchema): Record<string, string | string[]> {
   const keys = Object.keys(options);
   return keys
     .filter((prop) => executorPropKeys.indexOf(prop) < 0)
-    .reduce((acc, key) => ((acc[key] = options[key]), acc), {});
+    .reduce((acc, key) => {
+      acc[key] = options[key];
+      return acc;
+    }, {});
 }
 
 export function createCommand(command: string, options: ParsedExecutorInterface): string {
@@ -103,4 +105,13 @@ export function runCommandProcess(command: string, cwd: string): Promise<boolean
       process.stdin.removeListener('data', processExitListener);
     });
   });
+}
+
+function getModuleType(projectPath: string) {
+  const packageJsonPath = path.join(NX_WORKSPACE_ROOT, projectPath, 'package.json');
+  const appPackageJson = getPackageJson(packageJsonPath);
+  if (appPackageJson) {
+    return appPackageJson.type;
+  }
+  return getPackageJson(path.join(NX_WORKSPACE_ROOT, 'package.json')).type;
 }
