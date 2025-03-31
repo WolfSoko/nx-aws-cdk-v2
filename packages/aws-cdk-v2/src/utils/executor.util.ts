@@ -5,6 +5,7 @@ import { ParsedExecutorInterface } from '../interfaces/parsed-executor.interface
 import { logger, detectPackageManager } from '@nx/devkit';
 import { BootstrapExecutorSchema } from '../executors/bootstrap/schema';
 import { getPackageJson } from '@nx/eslint-plugin/src/utils/package-json-utils';
+import * as path from 'node:path';
 
 export const executorPropKeys = ['stacks'];
 export const LARGE_BUFFER = 1024 * 1000000;
@@ -18,8 +19,9 @@ export function generateCommandString(command: string, appPath: string) {
   const packageManager = detectPackageManager();
   const packageManagerExecutor = packageManager === 'npm' ? 'npx' : packageManager;
 
-  const projectPath = `${NX_WORKSPACE_ROOT}/${appPath}`;
-  const isEsm = getPackageJson(projectPath).type === 'module';
+  const projectPath = path.join(NX_WORKSPACE_ROOT, appPath);
+  const packageJsonPath = path.join(NX_WORKSPACE_ROOT, projectPath, 'package.json');
+  const isEsm = getPackageJson(packageJsonPath).type === 'module';
   const esmCommandPart = isEsm ? '--loader ts-node/esm' : '';
 
   const generatePath = `"${packageManagerExecutor} ts-node ${esmCommandPart} --require tsconfig-paths/register --project ${projectPath}/tsconfig.app.json ${projectPath}/src/main.ts"`;
