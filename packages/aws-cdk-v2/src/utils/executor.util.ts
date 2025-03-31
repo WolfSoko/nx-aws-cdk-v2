@@ -4,6 +4,7 @@ import { DeployExecutorSchema } from '../executors/deploy/schema';
 import { ParsedExecutorInterface } from '../interfaces/parsed-executor.interface';
 import { logger, detectPackageManager } from '@nx/devkit';
 import { BootstrapExecutorSchema } from '../executors/bootstrap/schema';
+import { getPackageJson } from '@nx/eslint-plugin/src/utils/package-json-utils';
 
 export const executorPropKeys = ['stacks'];
 export const LARGE_BUFFER = 1024 * 1000000;
@@ -16,8 +17,11 @@ if (!NX_WORKSPACE_ROOT) {
 export function generateCommandString(command: string, appPath: string) {
   const packageManager = detectPackageManager();
   const packageManagerExecutor = packageManager === 'npm' ? 'npx' : packageManager;
+  const isEsm = getPackageJson(appPath).type === 'module';
   const projectPath = `${NX_WORKSPACE_ROOT}/${appPath}`;
-  const generatePath = `"${packageManagerExecutor} ts-node --require tsconfig-paths/register --project ${projectPath}/tsconfig.app.json ${projectPath}/src/main.ts"`;
+  const esmCommandPart = isEsm ? '--loader ts-node/esm' : '';
+
+  const generatePath = `"${packageManagerExecutor} ts-node ${esmCommandPart} --require tsconfig-paths/register --project ${projectPath}/tsconfig.app.json ${projectPath}/src/main.ts"`;
   return `node --require ts-node/register ${NX_WORKSPACE_ROOT}/node_modules/aws-cdk/bin/cdk -a ${generatePath} ${command}`;
 }
 
