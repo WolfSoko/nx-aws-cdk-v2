@@ -48,7 +48,6 @@
   "parallel": 1,
   "useInferencePlugins": true,
   "defaultBase": "main",
-  "useLegacyCache": true,
   "plugins": [
     {
       "plugin": "@nx/jest/plugin",
