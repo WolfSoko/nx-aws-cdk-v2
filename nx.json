@@ -5,7 +5,7 @@
   },
   "$schema": "./node_modules/nx/schemas/nx-schema.json",
   "namedInputs": {
-    "default": ["{projectRoot}/**/*"],
+    "default": ["{projectRoot}/**/*", "sharedGlobals"],
     "production": [
       "default",
       "!{projectRoot}/**/*.spec.[jt]s",
@@ -17,7 +17,8 @@
       "!{projectRoot}/tsconfig.spec.json",
       "!{projectRoot}/eslint.config.js"
     ],
-    "globals": []
+    "globals": [],
+    "sharedGlobals": ["{workspaceRoot}/.github/workflows/ci.yml"]
   },
   "targetDefaults": {
     "build": {
