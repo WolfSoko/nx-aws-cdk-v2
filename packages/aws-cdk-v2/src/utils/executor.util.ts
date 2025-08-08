@@ -21,12 +21,33 @@ export function generateCommandString(command: string, appPath: string) {
 
   const projectPath = path.join(NX_WORKSPACE_ROOT, appPath);
   const moduleType = getModuleType(projectPath);
-  const tsNodePart = moduleType === 'module' ? '--loader ts-node/esm' : 'ts-node';
 
+  // Determine the path to the app's entrypoint
   const mainTsPath = path.join(projectPath, 'src', 'main.ts');
-  const generatePath = `${packageManagerExecutor} ${tsNodePart} --require tsconfig-paths/register --project ${path.join(projectPath, 'tsconfig.app.json')} ${mainTsPath}`;
-  // Entferne doppelte ts-node-Initialisierung
-  return `${path.join(NX_WORKSPACE_ROOT, 'node_modules', 'aws-cdk', 'bin', 'cdk')} -a "${generatePath}" ${command}`;
+  // Generate the CDK app execution command based on module type.  For ES modules, we use
+  // Node with the ts-node ESM loader.  For CommonJS modules, we rely on ts-node via the
+  // detected package manager executor.
+  const generatePath =
+    moduleType === 'module'
+      ? `node --loader ts-node/esm --require tsconfig-paths/register --project ${path.join(
+          projectPath,
+          'tsconfig.app.json',
+        )} ${mainTsPath}`
+      : `${packageManagerExecutor} ts-node --require tsconfig-paths/register --project ${path.join(
+          projectPath,
+          'tsconfig.app.json',
+        )} ${mainTsPath}`;
+
+  // Assemble the final CDK command.  Use the locally installed aws-cdk CLI to avoid
+  // dependency on globally installed versions.  The `-a` flag points to the generated
+  // command string for synthesizing the app.
+  return `${path.join(
+    NX_WORKSPACE_ROOT,
+    'node_modules',
+    'aws-cdk',
+    'bin',
+    'cdk',
+  )} -a "${generatePath}" ${command}`;
 }
 
 export function parseArgs(options: DeployExecutorSchema | BootstrapExecutorSchema): Record<string, string | string[]> {
@@ -36,7 +57,7 @@ export function parseArgs(options: DeployExecutorSchema | BootstrapExecutorSchem
     .reduce((acc, key) => {
       acc[key] = options[key];
       return acc;
-    }, {});
+    }, {} as Record<string, string | string[]>);
 }
 
 export function createCommand(command: string, options: ParsedExecutorInterface): string {
@@ -50,14 +71,17 @@ export function createCommand(command: string, options: ParsedExecutorInterface)
     commands.push(options.stacks);
   }
 
-  for (const arg in options.parseArgs) {
-    const parsedArg = options.parseArgs[arg];
-    if (Array.isArray(parsedArg)) {
-      parsedArg.forEach((value) => {
-        commands.push(`--${arg} ${value}`);
-      });
-    } else {
-      commands.push(`--${arg} ${parsedArg}`);
+  // If there are additional parsed arguments, append them appropriately
+  if (options.parseArgs) {
+    for (const arg in options.parseArgs) {
+      const parsedArg = options.parseArgs[arg];
+      if (Array.isArray(parsedArg)) {
+        parsedArg.forEach((value) => {
+          commands.push(`--${arg} ${value}`);
+        });
+      } else {
+        commands.push(`--${arg} ${parsedArg}`);
+      }
     }
   }
 
