@@ -21,12 +21,12 @@ export function generateCommandString(command: string, appPath: string) {
 
   const projectPath = path.join(NX_WORKSPACE_ROOT, appPath);
   const moduleType = getModuleType(projectPath);
-  const tsNodePart = moduleType === 'module' ? '--loader ts-node/esm' : 'ts-node';
+  const tsNodePart = moduleType === 'module' ? 'tsx' : `ts-node --require tsconfig-paths/register --project ${path.join(projectPath, 'tsconfig.app.json')}`;
 
   const mainTsPath = path.join(projectPath, 'src', 'main.ts');
-  const generatePath = `${packageManagerExecutor} ${tsNodePart} --require tsconfig-paths/register --project ${path.join(projectPath, 'tsconfig.app.json')} ${mainTsPath}`;
+  const generatePath = `${packageManagerExecutor} ${tsNodePart} ${mainTsPath}`;
   // Entferne doppelte ts-node-Initialisierung
-  return `${path.join(NX_WORKSPACE_ROOT, 'node_modules', 'aws-cdk', 'bin', 'cdk')} -a "${generatePath}" ${command}`;
+  return `${packageManagerExecutor} cdk -a "${generatePath}" ${command}`;
 }
 
 export function parseArgs(options: DeployExecutorSchema | BootstrapExecutorSchema): Record<string, string | string[]> {
