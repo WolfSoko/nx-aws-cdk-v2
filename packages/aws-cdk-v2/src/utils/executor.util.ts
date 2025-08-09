@@ -21,11 +21,10 @@ export function generateCommandString(command: string, appPath: string) {
 
   const projectPath = path.join(NX_WORKSPACE_ROOT, appPath);
   const moduleType = getModuleType(projectPath);
-  const tsNodePart = moduleType === 'module' ? 'tsx' : `ts-node --require tsconfig-paths/register --project ${path.join(projectPath, 'tsconfig.app.json')}`;
-
+  const compileTsPart = moduleType === 'module' ? 'tsx' : `ts-node --require tsconfig-paths/register --project ${path.join(projectPath, 'tsconfig.app.json')}`;
+  // Determine the path to the app's entrypoint
   const mainTsPath = path.join(projectPath, 'src', 'main.ts');
-  const generatePath = `${packageManagerExecutor} ${tsNodePart} ${mainTsPath}`;
-  // Entferne doppelte ts-node-Initialisierung
+  const generatePath = `${packageManagerExecutor} ${compileTsPart} ${mainTsPath}`;
   return `${packageManagerExecutor} cdk -a "${generatePath}" ${command}`;
 }
 
@@ -36,7 +35,7 @@ export function parseArgs(options: DeployExecutorSchema | BootstrapExecutorSchem
     .reduce((acc, key) => {
       acc[key] = options[key];
       return acc;
-    }, {});
+    }, {} as Record<string, string | string[]>);
 }
 
 export function createCommand(command: string, options: ParsedExecutorInterface): string {
@@ -50,14 +49,17 @@ export function createCommand(command: string, options: ParsedExecutorInterface)
     commands.push(options.stacks);
   }
 
-  for (const arg in options.parseArgs) {
-    const parsedArg = options.parseArgs[arg];
-    if (Array.isArray(parsedArg)) {
-      parsedArg.forEach((value) => {
-        commands.push(`--${arg} ${value}`);
-      });
-    } else {
-      commands.push(`--${arg} ${parsedArg}`);
+  // If there are additional parsed arguments, append them appropriately
+  if (options.parseArgs) {
+    for (const arg in options.parseArgs) {
+      const parsedArg = options.parseArgs[arg];
+      if (Array.isArray(parsedArg)) {
+        parsedArg.forEach((value) => {
+          commands.push(`--${arg} ${value}`);
+        });
+      } else {
+        commands.push(`--${arg} ${parsedArg}`);
+      }
     }
   }
 
