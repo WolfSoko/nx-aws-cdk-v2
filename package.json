@@ -35,7 +35,7 @@
     "@angular-devkit/schematics": "20.3.2",
     "@commitlint/cli": "19.8.1",
     "@eslint/eslintrc": "^3.0.0",
-    "@eslint/js": "~9.35.0",
+    "@eslint/js": "~9.36.0",
     "@nx/devkit": "21.5.3",
     "@nx/eslint": "21.5.3",
     "@nx/eslint-plugin": "21.5.3",
