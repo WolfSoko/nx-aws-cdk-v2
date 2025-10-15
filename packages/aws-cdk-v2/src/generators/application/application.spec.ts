@@ -18,6 +18,15 @@ describe('aws-cdk generator', () => {
     expect(config).toBeDefined();
   });
 
+  it('should register executors on generated project', async () => {
+    await generator(appTree, options);
+    const config = readProjectConfiguration(appTree, 'test');
+
+    expect(config.targets?.deploy?.executor).toBe('@wolsok/nx-aws-cdk-v2:deploy');
+    expect(config.targets?.destroy?.executor).toBe('@wolsok/nx-aws-cdk-v2:destroy');
+    expect(config.targets?.bootstrap?.executor).toBe('@wolsok/nx-aws-cdk-v2:bootstrap');
+  });
+
   it('directory option', async () => {
     const directory = 'sub';
     const directoryOptions = Object.assign({}, options);

@@ -80,15 +80,15 @@ export async function applicationGenerator(host: Tree, options: ApplicationSchem
     sourceRoot: `${normalizedOptions.projectRoot}/src`,
     targets: {
       deploy: {
-        executor: '@ago-dev/nx-aws-cdk-v2:deploy',
+        executor: '@wolsok/nx-aws-cdk-v2:deploy',
         options: {},
       },
       destroy: {
-        executor: '@ago-dev/nx-aws-cdk-v2:destroy',
+        executor: '@wolsok/nx-aws-cdk-v2:destroy',
         options: {},
       },
       bootstrap: {
-        executor: '@ago-dev/nx-aws-cdk-v2:bootstrap',
+        executor: '@wolsok/nx-aws-cdk-v2:bootstrap',
         options: {},
       },
     },

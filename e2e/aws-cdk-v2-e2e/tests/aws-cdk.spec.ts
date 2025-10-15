@@ -1,5 +1,13 @@
-import { checkFilesExist, ensureNxProject, readJson, runNxCommandAsync, uniq } from '@nx/plugin/testing';
+import {
+  checkFilesExist,
+  ensureNxProject,
+  readJson,
+  runNxCommandAsync,
+  uniq,
+  updateFile,
+} from '@nx/plugin/testing';
 import { logger } from '@nx/devkit';
+import { chmodSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import * as path from 'node:path';
 
 describe('aws-cdk-v2 e2e', () => {
@@ -11,6 +19,60 @@ describe('aws-cdk-v2 e2e', () => {
     const plugin = uniq('aws-cdk-v2');
 
     await runNxCommandAsync(`generate @wolsok/nx-aws-cdk-v2:application ${plugin}`);
+  }, 120000);
+
+  it('should generate when package.json uses type module', async () => {
+    const plugin = uniq('aws-cdk-v2');
+
+    updateFile('package.json', (content) => {
+      const packageJson = JSON.parse(content);
+      packageJson.type = 'module';
+      return `${JSON.stringify(packageJson, null, 2)}\n`;
+    });
+
+    await runNxCommandAsync(`generate @wolsok/nx-aws-cdk-v2:application ${plugin}`);
+
+    const { workspaceLayout } = readJson('nx.json');
+    const appsDir = workspaceLayout?.appsDir ?? 'apps';
+
+    expect(() => checkFilesExist(`${appsDir}/${plugin}/src/main.ts`)).not.toThrow();
+  }, 120000);
+
+  it('should run deploy target via nx using the cdk cli', async () => {
+    const plugin = uniq('aws-cdk-v2');
+
+    await runNxCommandAsync(`generate @wolsok/nx-aws-cdk-v2:application ${plugin}`);
+
+    const workspaceRoot = process.env.NX_WORKSPACE_ROOT ?? process.cwd();
+    const stubDir = path.join(workspaceRoot, 'tmp', `npx-stub-${plugin}`);
+    const logFile = path.join(stubDir, 'invocation.log');
+    const stubPath = path.join(stubDir, 'npx');
+
+    mkdirSync(stubDir, { recursive: true });
+    writeFileSync(
+      stubPath,
+      `#!/usr/bin/env bash\n` +
+        `echo \"$@\" > \"${logFile}\"\n` +
+        'exit 0\n'
+    );
+    chmodSync(stubPath, 0o755);
+
+    const originalPath = process.env.PATH ?? '';
+    process.env.PATH = `${stubDir}:${originalPath}`;
+
+    try {
+      await runNxCommandAsync(`run ${plugin}:deploy`);
+    } finally {
+      process.env.PATH = originalPath;
+    }
+
+    const invocation = readFileSync(logFile, 'utf-8');
+    const { workspaceLayout } = readJson('nx.json');
+    const appsDir = workspaceLayout?.appsDir ?? 'apps';
+
+    expect(invocation).toContain('cdk');
+    expect(invocation).toContain('deploy');
+    expect(invocation).toContain(`${appsDir}/${plugin}/src/main.ts`);
   }, 120000);
 
   describe('--directory', () => {
