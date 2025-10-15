@@ -6,14 +6,19 @@ import {
   uniq,
   updateFile,
 } from '@nx/plugin/testing';
-import { logger } from '@nx/devkit';
-import { chmodSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { ProjectConfiguration, logger } from '@nx/devkit';
+import { chmodSync, existsSync, mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from 'node:fs';
 import * as path from 'node:path';
 
 describe('aws-cdk-v2 e2e', () => {
   beforeAll(async () => {
     ensureNxProject('@wolsok/nx-aws-cdk-v2', path.join('dist/packages/aws-cdk-v2'));
   }, 120000);
+
+  async function readProjectConfigurationFromNx(projectName: string): Promise<ProjectConfiguration> {
+    const result = await runNxCommandAsync(`show project ${projectName} --json`);
+    return JSON.parse(result.stdout) as ProjectConfiguration;
+  }
 
   it('should create aws-cdk', async () => {
     const plugin = uniq('aws-cdk-v2');
@@ -23,6 +28,7 @@ describe('aws-cdk-v2 e2e', () => {
 
   it('should generate when package.json uses type module', async () => {
     const plugin = uniq('aws-cdk-v2');
+    const originalPackageType = readJson('package.json').type;
 
     updateFile('package.json', (content) => {
       const packageJson = JSON.parse(content);
@@ -30,49 +36,76 @@ describe('aws-cdk-v2 e2e', () => {
       return `${JSON.stringify(packageJson, null, 2)}\n`;
     });
 
-    await runNxCommandAsync(`generate @wolsok/nx-aws-cdk-v2:application ${plugin}`);
+    try {
+      await runNxCommandAsync(`generate @wolsok/nx-aws-cdk-v2:application ${plugin}`);
 
-    const { workspaceLayout } = readJson('nx.json');
-    const appsDir = workspaceLayout?.appsDir ?? 'apps';
+      const project = await readProjectConfigurationFromNx(plugin);
+      const sourceRoot = project.sourceRoot ?? `${project.root}/src`;
 
-    expect(() => checkFilesExist(`${appsDir}/${plugin}/src/main.ts`)).not.toThrow();
+      expect(() => checkFilesExist(`${sourceRoot}/main.ts`)).not.toThrow();
+    } finally {
+      updateFile('package.json', (content) => {
+        const packageJson = JSON.parse(content);
+
+        if (originalPackageType) {
+          packageJson.type = originalPackageType;
+        } else {
+          delete packageJson.type;
+        }
+
+        return `${JSON.stringify(packageJson, null, 2)}\n`;
+      });
+    }
   }, 120000);
 
   it('should run deploy target via nx using the cdk cli', async () => {
     const plugin = uniq('aws-cdk-v2');
 
     await runNxCommandAsync(`generate @wolsok/nx-aws-cdk-v2:application ${plugin}`);
+    const project = await readProjectConfigurationFromNx(plugin);
+    expect(project.root).toBeDefined();
 
     const workspaceRoot = process.env.NX_WORKSPACE_ROOT ?? process.cwd();
-    const stubDir = path.join(workspaceRoot, 'tmp', `npx-stub-${plugin}`);
-    const logFile = path.join(stubDir, 'invocation.log');
-    const stubPath = path.join(stubDir, 'npx');
+    const logDir = path.join(workspaceRoot, 'tmp', `cdk-stub-${plugin}`);
+    const logFile = path.join(logDir, 'invocation.log');
+    const cdkBinary = path.join(workspaceRoot, 'tmp', 'nx-e2e', 'proj', 'node_modules', '.bin', 'cdk');
+    const cdkBackup = `${cdkBinary}.real`;
 
-    mkdirSync(stubDir, { recursive: true });
+    mkdirSync(logDir, { recursive: true });
+    if (!existsSync(cdkBackup)) {
+      renameSync(cdkBinary, cdkBackup);
+    }
     writeFileSync(
-      stubPath,
+      cdkBinary,
       `#!/usr/bin/env bash\n` +
-        `echo "$@" > "${logFile}"\n` +
+        `printf 'cdk' >> "${logFile}"\n` +
+        'for arg in "$@"; do\n' +
+        `  printf ' %s' "$arg" >> "${logFile}"\n` +
+        'done\n' +
+        `printf '\n' >> "${logFile}"\n` +
         'exit 0\n'
     );
-    chmodSync(stubPath, 0o755);
-
-    const originalPath = process.env.PATH ?? '';
-    process.env.PATH = `${stubDir}:${originalPath}`;
+    chmodSync(cdkBinary, 0o755);
 
     try {
       await runNxCommandAsync(`run ${plugin}:deploy`);
     } finally {
-      process.env.PATH = originalPath;
+      if (existsSync(cdkBinary)) {
+        unlinkSync(cdkBinary);
+      }
+      if (existsSync(cdkBackup)) {
+        renameSync(cdkBackup, cdkBinary);
+      }
     }
 
-    const invocation = readFileSync(logFile, 'utf-8');
-    const { workspaceLayout } = readJson('nx.json');
-    const appsDir = workspaceLayout?.appsDir ?? 'apps';
+    const invocations = readFileSync(logFile, 'utf-8')
+      .split('\n')
+      .filter((line) => line.length > 0);
+    const cdkInvocation = invocations.find((line) => /\bcdk\b/.test(line));
 
-    expect(invocation).toContain('cdk');
-    expect(invocation).toContain('deploy');
-    expect(invocation).toContain(`${appsDir}/${plugin}/src/main.ts`);
+    expect(cdkInvocation).toBeDefined();
+    expect(cdkInvocation).toContain('deploy');
+    expect(cdkInvocation).toContain(`${project.root}/src/main.ts`);
   }, 120000);
 
   describe('--directory', () => {
