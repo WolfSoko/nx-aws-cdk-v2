@@ -52,7 +52,7 @@ describe('aws-cdk-v2 e2e', () => {
     writeFileSync(
       stubPath,
       `#!/usr/bin/env bash\n` +
-        `echo \"$@\" > \"${logFile}\"\n` +
+        `echo "$@" > "${logFile}"\n` +
         'exit 0\n'
     );
     chmodSync(stubPath, 0o755);
