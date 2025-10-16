@@ -23,6 +23,7 @@ describe('aws-cdk generator', () => {
     const config = readProjectConfiguration(appTree, 'test');
 
     expect(config.targets?.deploy?.executor).toBe('@wolsok/nx-aws-cdk-v2:deploy');
+    expect(config.targets?.synth?.executor).toBe('@wolsok/nx-aws-cdk-v2:synth');
     expect(config.targets?.destroy?.executor).toBe('@wolsok/nx-aws-cdk-v2:destroy');
     expect(config.targets?.bootstrap?.executor).toBe('@wolsok/nx-aws-cdk-v2:bootstrap');
   });
