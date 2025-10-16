@@ -83,6 +83,10 @@ export async function applicationGenerator(host: Tree, options: ApplicationSchem
         executor: '@wolsok/nx-aws-cdk-v2:deploy',
         options: {},
       },
+      synth: {
+        executor: '@wolsok/nx-aws-cdk-v2:synth',
+        options: {},
+      },
       destroy: {
         executor: '@wolsok/nx-aws-cdk-v2:destroy',
         options: {},

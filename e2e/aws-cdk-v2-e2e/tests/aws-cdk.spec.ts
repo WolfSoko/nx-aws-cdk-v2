@@ -108,6 +108,29 @@ describe('aws-cdk-v2 e2e', () => {
     expect(cdkInvocation).toContain(`${project.root}/src/main.ts`);
   }, 120000);
 
+  it('should synthesize the stack via nx using the cdk cli', async () => {
+    const plugin = uniq('aws-cdk-v2');
+
+    await runNxCommandAsync(`generate @wolsok/nx-aws-cdk-v2:application ${plugin}`);
+    const project = await readProjectConfigurationFromNx(plugin);
+
+    const synthResult = await runNxCommandAsync(`run ${plugin}:synth`);
+
+    expect(synthResult.stdout).toContain(plugin);
+    expect(() => checkFilesExist(`cdk.out/${plugin}.template.json`)).not.toThrow();
+    expect(() => checkFilesExist(`cdk.out/manifest.json`)).not.toThrow();
+
+    const manifest = JSON.parse(readFileSync(path.join(process.cwd(), 'cdk.out', 'manifest.json'), 'utf-8'));
+    const artifact = manifest?.artifacts?.[plugin];
+
+    expect(artifact?.type).toBe('aws:cloudformation:stack');
+    expect(artifact?.properties?.templateFile).toBe(`${plugin}.template.json`);
+    expect(artifact?.environment).toBeDefined();
+    expect(artifact?.environment).toContain('aws://');
+
+    expect(() => checkFilesExist(`${project.root}/cdk.out/${plugin}.template.json`)).toThrow();
+  }, 120000);
+
   describe('--directory', () => {
     it('should create src in the specified directory', async () => {
       const plugin = uniq('aws-cdk-v2');
