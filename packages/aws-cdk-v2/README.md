@@ -62,9 +62,10 @@ Options:
 
 ### Targets
 
-Generated applications expose several functions to the CLI that allow users to deploy, destroy and bootstrap.
+Generated applications expose several functions to the CLI that allow users to synthesize, deploy, destroy and bootstrap.
 
 ```shell
+nx synth myApp
 nx deploy myApp
 nx destroy myApp
 nx bootstrap myApp --profile=profile
