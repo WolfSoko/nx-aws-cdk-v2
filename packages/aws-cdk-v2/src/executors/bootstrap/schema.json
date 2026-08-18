@@ -1,8 +1,19 @@
 {
   "$schema": "http://json-schema.org/schema",
   "title": "Bootstrap executor",
-  "description": "",
+  "description": "Prepare (bootstrap) an AWS environment so CDK stacks of this project can be deployed into it.",
   "type": "object",
-  "properties": {},
+  "properties": {
+    "profile": {
+      "type": "string",
+      "description": "Name of the AWS profile (from ~/.aws/credentials or ~/.aws/config) to bootstrap with."
+    },
+    "context": {
+      "oneOf": [{ "type": "string" }, { "type": "array", "items": { "type": "string" } }],
+      "description": "Additional CDK context values as KEY=VALUE pairs. Pass the option multiple times for multiple values.",
+      "alias": "c"
+    }
+  },
+  "additionalProperties": true,
   "required": []
 }

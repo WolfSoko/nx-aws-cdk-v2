@@ -1,6 +1,6 @@
 {
-  "app": "npx ts-node src/main.ts",
-  "output": "<%= offsetFromRoot %>dist/apps/<%= projectName %>",
+  "app": "npx ts-node --require tsconfig-paths/register --project tsconfig.app.json src/main.ts",
+  "output": "<%= offsetFromRoot %>dist/cdk.out/<%= projectName %>",
   "requireApproval": "never",
   "watch": {
     "include": [

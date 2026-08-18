@@ -1,344 +1,326 @@
-# Getting Started with nx-aws-cdk-v2
+# Getting started with `@wolsok/nx-aws-cdk-v2`
 
-This guide provides step-by-step instructions for getting started with the nx-aws-cdk-v2 plugin. It covers installation, creating a new AWS CDK application, and deploying it to AWS.
+A walkthrough from an empty machine to a deployed CDK stack, and what to do next.
 
-## Table of Contents
+## Table of contents
 
 - [Prerequisites](#prerequisites)
-- [Installation](#installation)
-- [Creating a New AWS CDK Application](#creating-a-new-aws-cdk-application)
-- [Understanding the Generated Application](#understanding-the-generated-application)
-- [Developing Your CDK Application](#developing-your-cdk-application)
-- [Deploying Your CDK Application](#deploying-your-cdk-application)
-- [Destroying Your CDK Application](#destroying-your-cdk-application)
-- [Advanced Usage](#advanced-usage)
-- [Troubleshooting](#troubleshooting)
+- [1. Get an Nx workspace](#1-get-an-nx-workspace)
+- [2. Add the plugin](#2-add-the-plugin)
+- [3. Generate an application](#3-generate-an-application)
+- [4. Understand what was generated](#4-understand-what-was-generated)
+- [5. Write some infrastructure](#5-write-some-infrastructure)
+- [6. Synthesize](#6-synthesize)
+- [7. Bootstrap the AWS environment](#7-bootstrap-the-aws-environment)
+- [8. Deploy](#8-deploy)
+- [9. Destroy](#9-destroy)
+- [Going further](#going-further)
+- [Where to next](#where-to-next)
 
 ## Prerequisites
 
-Before you begin, make sure you have the following installed:
+| Tool              | Version    | Notes                                                                        |
+| ----------------- | ---------- | ---------------------------------------------------------------------------- |
+| Node.js           | `>= 20.19` | `node --version`. Use the version in the project's `.nvmrc` if there is one. |
+| npm / pnpm / yarn | any        | The executors detect your package manager through Nx.                        |
+| Nx                | `>= 21`    | Installed in the workspace; no global install needed.                        |
+| AWS credentials   | —          | See below.                                                                   |
 
-1. **Node.js** (v14 or later) and **npm** (v6 or later)
-2. **Nx CLI** (v15 or later)
-3. **AWS CLI** configured with appropriate credentials
-4. **AWS CDK CLI** (v2 or later)
+You do **not** need a global `aws-cdk` install — the generator adds the CDK Toolkit to your
+workspace's `devDependencies` and the executors use that copy.
 
-You should also have an AWS account and have configured the AWS CLI with your credentials.
+Credentials can come from anywhere the AWS SDK looks: `aws configure`, `AWS_PROFILE`,
+`AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY`, IAM Identity Center (SSO), or an OIDC role in CI. Check
+that they resolve before you start:
 
-```bash
-# Install the AWS CDK CLI globally
-npm install -g aws-cdk
-
-# Verify the installation
-cdk --version
-
-# Configure AWS CLI
-aws configure
+```shell
+aws sts get-caller-identity
 ```
 
-## Installation
+## 1. Get an Nx workspace
 
-### Creating a New Nx Workspace
+Skip this if you already have one.
 
-If you don't have an existing Nx workspace, you can create one using the following command:
-
-```bash
-# Create a new Nx workspace
-npx create-nx-workspace@latest my-aws-workspace --preset=empty
-
-# Navigate to the workspace
+```shell
+npx create-nx-workspace@latest my-aws-workspace --preset=ts
 cd my-aws-workspace
 ```
 
-### Adding the nx-aws-cdk-v2 Plugin
+Any Nx workspace preset works — the plugin does not assume a framework.
 
-Add the nx-aws-cdk-v2 plugin to your Nx workspace:
+## 2. Add the plugin
 
-```bash
-# Using npm
+```shell
 npm install --save-dev @wolsok/nx-aws-cdk-v2
-
-# Using yarn
-yarn add --dev @wolsok/nx-aws-cdk-v2
-
-# Using pnpm
-pnpm add --save-dev @wolsok/nx-aws-cdk-v2
 ```
 
-## Creating a New AWS CDK Application
+## 3. Generate an application
 
-Once you have installed the plugin, you can create a new AWS CDK application using the following command:
-
-```bash
+```shell
 nx generate @wolsok/nx-aws-cdk-v2:application my-cdk-app
 ```
 
-This will create a new AWS CDK application in the `apps/my-cdk-app` directory with the following structure:
+Useful options:
 
+```shell
+# put it in a sub directory - the project is then called "aws-my-cdk-app"
+nx g @wolsok/nx-aws-cdk-v2:application my-cdk-app --directory=aws
+
+# tag it, so `nx affected` and module boundary rules can target it
+nx g @wolsok/nx-aws-cdk-v2:application my-cdk-app --tags=scope:infra,type:app
+
+# no Jest configuration
+nx g @wolsok/nx-aws-cdk-v2:application my-cdk-app --unitTestRunner=none
+
+# see what would happen without writing anything
+nx g @wolsok/nx-aws-cdk-v2:application my-cdk-app --dry-run
 ```
+
+The generator also adds `aws-cdk-lib` + `constructs` to `dependencies` and `aws-cdk`, `ts-node`,
+`tsconfig-paths` and `tsx` to `devDependencies`, then installs them.
+
+## 4. Understand what was generated
+
+The project root is `<appsDir>/<name>`, where `<appsDir>` is `workspaceLayout.appsDir` from
+`nx.json` if you set it, otherwise `apps/` or `packages/` if either directory already exists, and the
+workspace root if neither does. The examples below assume an `apps/` layout.
+
+```text
 apps/my-cdk-app/
-├── cdk.json
-├── jest.config.ts
-├── project.json
+├── cdk.json            # config for running the cdk CLI by hand from this directory
+├── jest.config.cts
+├── project.json        # the deploy / synth / destroy / bootstrap targets
 ├── src/
-│   ├── main.ts
-│   ├── stacks/
-│   │   └── my-cdk-app-stack.ts
-│   └── test/
-│       └── my-cdk-app.spec.ts
-└── tsconfig.json
+│   ├── main.ts         # the CDK app entry point
+│   ├── main.test.ts    # a Jest test asserting the synthesized template
+│   └── stacks/
+│       └── app-stack.ts
+├── tsconfig.app.json
+├── tsconfig.json
+└── tsconfig.spec.json
 ```
 
-## Understanding the Generated Application
+`src/main.ts` is the entry point the executors point the CDK CLI at:
 
-Let's take a look at the key files in the generated application:
+```ts
+import { App } from 'aws-cdk-lib';
+import { AppStack } from './stacks/app-stack';
 
-### cdk.json
+const app = new App();
+new AppStack(app, 'my-cdk-app');
+```
 
-The `cdk.json` file tells the CDK Toolkit how to execute your app. It includes the entry point and other configuration options.
+`src/stacks/app-stack.ts` is where your infrastructure goes:
+
+```ts
+import { App, Stack, StackProps } from 'aws-cdk-lib';
+
+export class AppStack extends Stack {
+  constructor(scope: App, id: string, props?: StackProps) {
+    super(scope, id, props);
+
+    // Define your infrastructure here
+  }
+}
+```
+
+`project.json` wires up the four targets:
 
 ```json
 {
-  "app": "ts-node --prefer-ts-exts src/main.ts",
-  "context": {
-    "@aws-cdk/core:enableStackNameDuplicates": "true",
-    "aws-cdk:enableDiffNoFail": "true",
-    "@aws-cdk/core:stackRelativeExports": "true"
+  "targets": {
+    "deploy": { "executor": "@wolsok/nx-aws-cdk-v2:deploy", "options": {} },
+    "synth": { "executor": "@wolsok/nx-aws-cdk-v2:synth", "options": {} },
+    "destroy": { "executor": "@wolsok/nx-aws-cdk-v2:destroy", "options": {} },
+    "bootstrap": { "executor": "@wolsok/nx-aws-cdk-v2:bootstrap", "options": {} }
   }
 }
 ```
 
-### main.ts
+## 5. Write some infrastructure
 
-The `main.ts` file is the entry point of your CDK application. It creates an instance of the CDK app and adds your stacks to it.
+An S3 bucket, to have something real to deploy:
 
-```typescript
-import { App } from 'aws-cdk-lib';
-import { MyCdkAppStack } from './stacks/my-cdk-app-stack';
+```ts
+import { App, RemovalPolicy, Stack, StackProps } from 'aws-cdk-lib';
+import { Bucket, BucketEncryption } from 'aws-cdk-lib/aws-s3';
 
-const app = new App();
-new MyCdkAppStack(app, 'MyCdkAppStack');
-```
-
-### my-cdk-app-stack.ts
-
-The `my-cdk-app-stack.ts` file defines your CDK stack. This is where you'll define your AWS resources.
-
-```typescript
-import { Stack, StackProps } from 'aws-cdk-lib';
-import { Construct } from 'constructs';
-
-export class MyCdkAppStack extends Stack {
-  constructor(scope: Construct, id: string, props?: StackProps) {
+export class AppStack extends Stack {
+  constructor(scope: App, id: string, props?: StackProps) {
     super(scope, id, props);
 
-    // Define your AWS resources here
-    // For example:
-    // const bucket = new s3.Bucket(this, 'MyBucket');
-  }
-}
-```
-
-## Developing Your CDK Application
-
-Now that you have created a new AWS CDK application, you can start developing it by adding AWS resources to your stack.
-
-### Adding AWS Resources
-
-Let's modify the `my-cdk-app-stack.ts` file to add an S3 bucket:
-
-```typescript
-import { Stack, StackProps } from 'aws-cdk-lib';
-import { Construct } from 'constructs';
-import * as s3 from 'aws-cdk-lib/aws-s3';
-
-export class MyCdkAppStack extends Stack {
-  constructor(scope: Construct, id: string, props?: StackProps) {
-    super(scope, id, props);
-
-    // Create an S3 bucket
-    const bucket = new s3.Bucket(this, 'MyBucket', {
+    new Bucket(this, 'AssetsBucket', {
+      encryption: BucketEncryption.S3_MANAGED,
       versioned: true,
-      removalPolicy: cdk.RemovalPolicy.DESTROY,
-      autoDeleteObjects: true,
+      removalPolicy: RemovalPolicy.DESTROY, // fine for a sandbox, not for production data
     });
   }
 }
 ```
 
-### Installing AWS CDK Libraries
+The generated Jest test asserts an _empty_ stack, so update it as soon as you add resources:
 
-You may need to install additional AWS CDK libraries depending on the AWS services you want to use:
+```ts
+import { App } from 'aws-cdk-lib';
+import { Template } from 'aws-cdk-lib/assertions';
+import { AppStack } from './stacks/app-stack';
 
-```bash
-# Install the S3 library
-npm install aws-cdk-lib/aws-s3
+describe('MyCdkApp', () => {
+  it('creates an encrypted, versioned bucket', () => {
+    const app = new App();
+
+    const template = Template.fromStack(new AppStack(app, 'MyCdkAppTestStack'));
+
+    template.hasResourceProperties('AWS::S3::Bucket', {
+      VersioningConfiguration: { Status: 'Enabled' },
+    });
+  });
+});
 ```
 
-### Testing Your CDK Application
-
-You can test your CDK application using the Jest test runner:
-
-```bash
+```shell
 nx test my-cdk-app
 ```
 
-## Deploying Your CDK Application
+## 6. Synthesize
 
-Before you can deploy your CDK application, you need to bootstrap your AWS environment. This is a one-time setup that creates the necessary resources for CDK to deploy your stacks.
+`synth` turns your TypeScript into CloudFormation without contacting AWS — the fastest way to check
+your work, and a good CI gate:
 
-### Bootstrapping Your AWS Environment
-
-```bash
-nx bootstrap my-cdk-app
+```shell
+nx synth my-cdk-app
 ```
 
-If you want to bootstrap a specific AWS environment or use a specific AWS profile, you can use the following commands:
+The templates land in `cdk.out/` **at the workspace root**, because the executors run the CDK CLI
+from there. `cdk.out/` is worth adding to `.gitignore`.
 
-```bash
-# Bootstrap a specific environment
-nx bootstrap my-cdk-app aws://123456789012/us-east-1
+## 7. Bootstrap the AWS environment
 
-# Bootstrap using a specific profile
+Every AWS account + region pair needs to be bootstrapped once before CDK can deploy into it. This
+creates a small CloudFormation stack (`CDKToolkit`) holding the staging bucket and roles:
+
+```shell
+# using a named profile
 nx bootstrap my-cdk-app --profile=my-profile
+
+# or an explicit environment
+nx bootstrap my-cdk-app aws://123456789012/eu-central-1
 ```
 
-### Deploying Your Stack
+See the [CDK bootstrapping guide](https://docs.aws.amazon.com/cdk/v2/guide/bootstrapping.html) for
+what the stack contains and how to customize it.
 
-Once you have bootstrapped your AWS environment, you can deploy your CDK application:
+## 8. Deploy
 
-```bash
+```shell
 nx deploy my-cdk-app
+
+# a single stack
+nx deploy my-cdk-app --stacks=MyStack
+
+# against a specific account
+nx deploy my-cdk-app --profile=production
 ```
 
-If you want to deploy specific stacks, you can use the `--stacks` option:
+Note that the generated `cdk.json` sets `"requireApproval": "never"`, but the executors run the CDK
+CLI from the workspace root and therefore do not read it. If a stack changes IAM or security group
+rules, the CLI will ask for confirmation — pass `--requireApproval=never` explicitly (for example in
+CI) to skip the prompt.
 
-```bash
-nx deploy my-cdk-app --stacks="MyCdkAppStack"
-```
+## 9. Destroy
 
-## Destroying Your CDK Application
-
-When you're done with your CDK application, you can destroy it to avoid incurring AWS charges:
-
-```bash
+```shell
 nx destroy my-cdk-app
+nx destroy my-cdk-app --stacks=MyStack
 ```
 
-If you want to destroy specific stacks, you can use the `--stacks` option:
+Resources with a `RETAIN` removal policy survive; everything else goes.
 
-```bash
-nx destroy my-cdk-app --stacks="MyCdkAppStack"
-```
+## Going further
 
-## Advanced Usage
+### Multiple stacks
 
-### Working with Multiple Stacks
+Add them to `src/main.ts` and address them by name:
 
-You can define multiple stacks in your CDK application by creating additional stack classes and instantiating them in your `main.ts` file:
-
-```typescript
-import { App } from 'aws-cdk-lib';
-import { MyCdkAppStack } from './stacks/my-cdk-app-stack';
-import { MySecondStack } from './stacks/my-second-stack';
-
+```ts
 const app = new App();
-new MyCdkAppStack(app, 'MyCdkAppStack');
-new MySecondStack(app, 'MySecondStack');
+new NetworkStack(app, 'network');
+new ApiStack(app, 'api');
 ```
 
-### Using Environment Variables
+```shell
+nx deploy my-cdk-app --stacks=api
+nx deploy my-cdk-app --stacks="network api"
+```
 
-You can use environment variables to configure your CDK application:
+### Per-environment configuration
 
-```typescript
-import { App, Stack, StackProps } from 'aws-cdk-lib';
-import { Construct } from 'constructs';
+Use CDK context values and read them in your stack with `this.node.tryGetContext('env')`:
 
-export class MyCdkAppStack extends Stack {
-  constructor(scope: Construct, id: string, props?: StackProps) {
-    super(scope, id, props);
+```shell
+nx deploy my-cdk-app --context=env=staging --profile=staging
+```
 
-    // Use environment variables
-    const stageName = process.env.STAGE_NAME || 'dev';
-    
-    // Use the stage name in your resources
-    const bucket = new s3.Bucket(this, `MyBucket-${stageName}`);
+Multiple values are supported — repeat the flag.
+
+### Pinning options in `project.json`
+
+Anything you would type on the command line can live in the target's `options`:
+
+```json
+{
+  "targets": {
+    "deploy": {
+      "executor": "@wolsok/nx-aws-cdk-v2:deploy",
+      "options": {
+        "profile": "production",
+        "requireApproval": "never"
+      }
+    }
   }
 }
 ```
 
-You can set environment variables when deploying your CDK application:
+Use `configurations` for per-environment variants:
 
-```bash
-STAGE_NAME=prod nx deploy my-cdk-app
-```
-
-### Using AWS CDK Constructs
-
-AWS CDK provides a rich set of constructs for defining AWS resources. You can use these constructs to define your infrastructure in a high-level, object-oriented way.
-
-For example, to create an API Gateway with a Lambda function backend:
-
-```typescript
-import { Stack, StackProps } from 'aws-cdk-lib';
-import { Construct } from 'constructs';
-import * as lambda from 'aws-cdk-lib/aws-lambda';
-import * as apigateway from 'aws-cdk-lib/aws-apigateway';
-
-export class MyCdkAppStack extends Stack {
-  constructor(scope: Construct, id: string, props?: StackProps) {
-    super(scope, id, props);
-
-    // Create a Lambda function
-    const helloFunction = new lambda.Function(this, 'HelloFunction', {
-      runtime: lambda.Runtime.NODEJS_14_X,
-      code: lambda.Code.fromAsset('lambda'),
-      handler: 'hello.handler',
-    });
-
-    // Create an API Gateway
-    const api = new apigateway.RestApi(this, 'HelloApi');
-    
-    // Add a resource and method
-    const helloResource = api.root.addResource('hello');
-    helloResource.addMethod('GET', new apigateway.LambdaIntegration(helloFunction));
+```json
+{
+  "targets": {
+    "deploy": {
+      "executor": "@wolsok/nx-aws-cdk-v2:deploy",
+      "options": { "requireApproval": "never" },
+      "configurations": {
+        "staging": { "profile": "staging", "context": "env=staging" },
+        "production": { "profile": "production", "context": "env=production" }
+      }
+    }
   }
 }
 ```
 
-## Troubleshooting
-
-### Common Issues
-
-#### CDK Bootstrap Error
-
-If you encounter an error when bootstrapping your AWS environment, make sure you have the correct AWS credentials configured:
-
-```bash
-aws configure
+```shell
+nx deploy my-cdk-app --configuration=production
 ```
 
-#### Deployment Error
+### In CI
 
-If you encounter an error when deploying your CDK application, check the error message for details. Common issues include:
+`synth` and `test` are safe to run on every pull request; `deploy` belongs on a protected branch with
+credentials from an OIDC role rather than long-lived keys:
 
-- Missing AWS credentials
-- Insufficient permissions
-- Resource already exists
-
-#### Missing Dependencies
-
-If you encounter an error about missing dependencies, make sure you have installed all the required AWS CDK libraries:
-
-```bash
-npm install aws-cdk-lib
+```shell
+npx nx affected -t test synth      # pull requests
+npx nx deploy my-cdk-app --requireApproval=never   # main
 ```
 
-### Getting Help
+### ESM workspaces
 
-If you encounter any issues not covered in this guide, you can:
+If your workspace `package.json` has `"type": "module"`, the executors run the app through `tsx`
+instead of `ts-node` automatically. Nothing to configure.
 
-- Check the [AWS CDK documentation](https://docs.aws.amazon.com/cdk/latest/guide/home.html)
-- Open an issue on the [nx-aws-cdk-v2 GitHub repository](https://github.com/WolfSoko/nx-aws-cdk-v2/issues)
-- Ask for help on the [Nx Community Discord](https://discord.gg/nx)
+## Where to next
+
+- [Package README](../packages/aws-cdk-v2/README.md) — every option in one place
+- [API reference](./api-documentation.md) — schemas and defaults
+- [Architecture](./architecture.md) — how the plugin works internally
+- [Troubleshooting](./troubleshooting.md) — when something goes wrong
+- [AWS CDK v2 developer guide](https://docs.aws.amazon.com/cdk/v2/guide/home.html)

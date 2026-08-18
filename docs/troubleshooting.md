@@ -1,343 +1,267 @@
-# Troubleshooting Guide for nx-aws-cdk-v2
+# Troubleshooting
 
-This guide provides solutions to common issues you might encounter when using the nx-aws-cdk-v2 plugin. It covers installation issues, deployment problems, and other common challenges.
+Symptoms, causes and fixes for the problems people actually hit with
+`@wolsok/nx-aws-cdk-v2`. If none of these match, open an
+[issue](https://github.com/WolfSoko/nx-aws-cdk-v2/issues) with the output of the failing command run
+with `--verbose`.
 
-## Table of Contents
+## Table of contents
 
-- [Installation Issues](#installation-issues)
-- [Generator Issues](#generator-issues)
-- [Deployment Issues](#deployment-issues)
-- [Bootstrap Issues](#bootstrap-issues)
-- [Destroy Issues](#destroy-issues)
-- [AWS CDK Issues](#aws-cdk-issues)
-- [Nx Integration Issues](#nx-integration-issues)
-- [Common Error Messages](#common-error-messages)
-- [Getting Help](#getting-help)
+- [First: see the command that actually ran](#first-see-the-command-that-actually-ran)
+- [Installation and resolution](#installation-and-resolution)
+- [Generator problems](#generator-problems)
+- [Running a target](#running-a-target)
+- [AWS credentials and permissions](#aws-credentials-and-permissions)
+- [Deploy, destroy and bootstrap](#deploy-destroy-and-bootstrap)
+- [Output locations and caching](#output-locations-and-caching)
+- [Getting help](#getting-help)
 
-## Installation Issues
+## First: see the command that actually ran
 
-### Plugin Not Found
+Almost every executor problem is really a CDK problem, and the fastest way to tell is to look at the
+command line the plugin built:
 
-**Issue**: When trying to use the plugin, you get an error saying the plugin cannot be found.
+```shell
+nx deploy my-app --verbose
+```
 
-**Solution**: Make sure you have installed the plugin correctly:
+Nx prints the executor's debug log, including `Executing command: npx cdk -a "npx ts-node …" deploy`.
+Copy that command, run it by hand, and you will usually get a much clearer error from the CDK CLI. If
+the hand-run command works and the target does not, the difference is in the target's options.
 
-```bash
+## Installation and resolution
+
+### `Cannot find module '@wolsok/nx-aws-cdk-v2'` / `Unable to resolve @wolsok/nx-aws-cdk-v2:application`
+
+The plugin is not installed in the workspace you are running from.
+
+```shell
 npm install --save-dev @wolsok/nx-aws-cdk-v2
 ```
 
-Also, check your `package.json` to ensure the plugin is listed in the `devDependencies` section.
+Check that it appears in `devDependencies`, and that you are in the workspace root. If you are
+testing a local build via `npm link`, re-link after every rebuild — `npm link` points at the build
+output, which `nx build aws-cdk-v2` replaces.
 
-### Version Compatibility Issues
+### `ERESOLVE could not resolve` while installing
 
-**Issue**: You encounter errors related to version compatibility between Nx and the plugin.
+npm cannot satisfy a peer range in your workspace — usually a mixed set of Nx versions.
 
-**Solution**: Make sure you are using compatible versions of Nx and the plugin. The nx-aws-cdk-v2 plugin is designed to work with Nx v15 and later. You can check your Nx version with:
-
-```bash
-nx --version
+```shell
+npm install --save-dev @wolsok/nx-aws-cdk-v2 --legacy-peer-deps
 ```
 
-If you need to update Nx, you can do so with:
+Better: make sure every `@nx/*` package and `nx` itself are on the same version first
+(`npx nx migrate latest`), then install again without the flag.
 
-```bash
-npm install --save-dev nx@latest
+### Peer dependency warnings about `@nx/devkit` or `@nx/jest`
+
+The plugin declares `@nx/devkit` (required) and `@nx/jest` (optional) as peers, both `>= 21`. Install
+`@nx/devkit` if your workspace does not have it. `@nx/jest` is only needed when generating
+applications with `--unitTestRunner=jest`, which is the default — pass `--unitTestRunner=none` if you
+do not want Jest.
+
+## Generator problems
+
+### The application landed somewhere unexpected
+
+The project root is `<appsDir>/<directory>/<name>`, where `<appsDir>` is `workspaceLayout.appsDir`
+from `nx.json` if set, otherwise `apps/` or `packages/` if either exists, otherwise the workspace
+root. Set it explicitly if you want a fixed location:
+
+```json
+{
+  "workspaceLayout": { "appsDir": "apps", "libsDir": "libs" }
+}
 ```
 
-### Dependency Conflicts
+Preview before committing to it:
 
-**Issue**: You encounter dependency conflicts when installing the plugin.
-
-**Solution**: Try installing with the `--force` flag:
-
-```bash
-npm install --save-dev @wolsok/nx-aws-cdk-v2 --force
+```shell
+nx g @wolsok/nx-aws-cdk-v2:application my-app --dry-run
 ```
 
-Alternatively, you can try resolving the conflicts manually by updating your dependencies.
+### `The project my-app already exists`
 
-## Generator Issues
+An Nx project with that name is already registered. Pick another name, or note that `--directory=aws`
+makes the project name `aws-my-app`, which may be what you want.
 
-### Application Generator Fails
+### Generation succeeds but dependencies are missing
 
-**Issue**: The application generator fails with an error.
+The generator writes `package.json` and then runs your package manager's install. If that install
+fails (network, registry auth, lockfile conflict) the files are still on disk. Just install again:
 
-**Solution**: Check the error message for details. Common issues include:
-
-1. **Invalid project name**: Make sure your project name follows Nx naming conventions (lowercase, no spaces).
-2. **Directory already exists**: Choose a different project name or directory.
-3. **Missing dependencies**: Make sure you have all the required dependencies installed.
-
-Try running the generator with the `--verbose` flag to get more information:
-
-```bash
-nx generate @wolsok/nx-aws-cdk-v2:application my-cdk-app --verbose
+```shell
+npm install
 ```
 
-### Generated Application Structure Issues
+## Running a target
 
-**Issue**: The generated application structure is not as expected.
+### `cdk: command not found` / `Cannot find module 'aws-cdk'`
 
-**Solution**: Make sure you are using the latest version of the plugin. If the issue persists, try generating the application with different options:
+The CDK Toolkit is not installed in the workspace. The generator adds it, so this usually means the
+post-generation install did not complete:
 
-```bash
-nx generate @wolsok/nx-aws-cdk-v2:application my-cdk-app --directory=apps/aws
+```shell
+npm install --save-dev aws-cdk
 ```
 
-## Deployment Issues
+### `Cannot find module 'ts-node'` or `tsx: command not found`
 
-### Deployment Fails
+The executors run your `main.ts` through a TypeScript loader: `ts-node` (plus `tsconfig-paths`) for
+CommonJS workspaces, `tsx` for workspaces whose `package.json` has `"type": "module"`. The generator
+installs all three; install whichever is missing:
 
-**Issue**: The `nx deploy` command fails with an error.
-
-**Solution**: Check the error message for details. Common issues include:
-
-1. **AWS credentials not configured**: Make sure you have configured your AWS credentials correctly:
-
-```bash
-aws configure
+```shell
+npm install --save-dev ts-node tsconfig-paths tsx
 ```
 
-2. **Missing AWS CDK bootstrap**: Make sure you have bootstrapped your AWS environment:
+### `Unknown file extension ".ts"` or `Cannot use import statement outside a module`
 
-```bash
-nx bootstrap my-cdk-app
-```
+A mismatch between your workspace's module type and the loader. The plugin picks the loader from the
+nearest `package.json`: the project's own if it declares `"type"`, otherwise the workspace one. Make
+that field say what you actually mean — add `"type": "module"` for ESM, remove it for CommonJS — and
+run again.
 
-3. **Stack already exists**: If you're trying to deploy a stack that already exists, you might need to update it instead:
+### `Cannot find module '@myorg/some-lib'` when synthesizing
 
-```bash
-nx deploy my-cdk-app
-```
+Your stack imports a workspace library through a `tsconfig.base.json` path alias. In CommonJS
+workspaces those are resolved by `tsconfig-paths`, loaded through the project's `tsconfig.app.json`
+— make sure that file still extends your workspace's base config. In ESM workspaces, `tsx` does not
+read `paths`; import the library through its package name and make sure it is built, or use a
+relative import.
 
-4. **Permission issues**: Make sure your AWS user has the necessary permissions to deploy the resources defined in your CDK application.
+### The target runs but ignores the options in `cdk.json`
 
-### Deployment Hangs
-
-**Issue**: The `nx deploy` command hangs and doesn't complete.
-
-**Solution**: This could be due to network issues or AWS service issues. Try the following:
-
-1. Check your internet connection.
-2. Check the AWS Service Health Dashboard for any ongoing issues.
-3. Try deploying with the `--verbose` flag to get more information:
-
-```bash
-nx deploy my-cdk-app --verbose
-```
-
-4. Try deploying a specific stack:
-
-```bash
-nx deploy my-cdk-app --stacks="MyStack"
-```
-
-### Deployment Succeeds but Resources Are Not Created
-
-**Issue**: The `nx deploy` command succeeds, but the expected AWS resources are not created.
-
-**Solution**: Check the following:
-
-1. Make sure your CDK application is correctly defining the resources you expect.
-2. Check the AWS CloudFormation console to see if the stack was created.
-3. Check the AWS CloudFormation events for any errors.
-4. Make sure you're looking in the correct AWS region.
-
-## Bootstrap Issues
-
-### Bootstrap Fails
-
-**Issue**: The `nx bootstrap` command fails with an error.
-
-**Solution**: Check the error message for details. Common issues include:
-
-1. **AWS credentials not configured**: Make sure you have configured your AWS credentials correctly:
-
-```bash
-aws configure
-```
-
-2. **Permission issues**: Make sure your AWS user has the necessary permissions to create the bootstrap resources.
-3. **Region not specified**: If you're trying to bootstrap a specific region, make sure you specify it correctly:
-
-```bash
-nx bootstrap my-cdk-app aws://123456789012/us-east-1
-```
-
-### Bootstrap Succeeds but Deployment Still Fails
-
-**Issue**: You've successfully bootstrapped your AWS environment, but deployment still fails with bootstrap-related errors.
-
-**Solution**: Make sure you've bootstrapped the correct AWS environment. If you're deploying to multiple regions or accounts, you need to bootstrap each one:
-
-```bash
-# Bootstrap account 123456789012 in us-east-1
-nx bootstrap my-cdk-app aws://123456789012/us-east-1
-
-# Bootstrap account 123456789012 in us-west-2
-nx bootstrap my-cdk-app aws://123456789012/us-west-2
-```
-
-## Destroy Issues
-
-### Destroy Fails
-
-**Issue**: The `nx destroy` command fails with an error.
-
-**Solution**: Check the error message for details. Common issues include:
-
-1. **AWS credentials not configured**: Make sure you have configured your AWS credentials correctly:
-
-```bash
-aws configure
-```
-
-2. **Permission issues**: Make sure your AWS user has the necessary permissions to delete the resources.
-3. **Resources with deletion protection**: Some resources might have deletion protection enabled. You'll need to disable it before destroying the stack.
-4. **Dependencies between stacks**: If you have dependencies between stacks, you need to destroy them in the correct order.
-
-### Resources Not Fully Removed
-
-**Issue**: After running `nx destroy`, some resources are still present in your AWS account.
-
-**Solution**: Some resources might have been created outside of CloudFormation or might have `RemovalPolicy.RETAIN` set. You'll need to manually delete these resources using the AWS Management Console or AWS CLI.
-
-## AWS CDK Issues
-
-### CDK Version Compatibility
-
-**Issue**: You encounter errors related to CDK version compatibility.
-
-**Solution**: Make sure you are using compatible versions of AWS CDK and the plugin. The nx-aws-cdk-v2 plugin is designed to work with AWS CDK v2. You can check your AWS CDK version with:
-
-```bash
-cdk --version
-```
-
-If you need to update AWS CDK, you can do so with:
-
-```bash
-npm install -g aws-cdk@latest
-```
-
-### CDK Construct Library Issues
-
-**Issue**: You encounter errors when using CDK construct libraries.
-
-**Solution**: Make sure you have installed the correct construct libraries for your CDK version:
-
-```bash
-# For CDK v2
-npm install aws-cdk-lib
-```
-
-Also, make sure you're importing the constructs correctly:
-
-```typescript
-// For CDK v2
-import { Stack, StackProps } from 'aws-cdk-lib';
-import { Construct } from 'constructs';
-import * as s3 from 'aws-cdk-lib/aws-s3';
-```
-
-## Nx Integration Issues
-
-### Nx Commands Not Working
-
-**Issue**: Nx commands like `nx deploy` or `nx bootstrap` are not working.
-
-**Solution**: Make sure your project is correctly configured in the Nx workspace. Check the `project.json` file in your project directory to ensure it has the correct executors configured:
+Expected. The executors run the CDK CLI from the **workspace root** with an explicit `-a` app
+argument, so the project's `cdk.json` is never read — including its `requireApproval` and `output`
+settings. Put those on the target instead:
 
 ```json
 {
   "targets": {
     "deploy": {
       "executor": "@wolsok/nx-aws-cdk-v2:deploy",
-      "options": {}
-    },
-    "destroy": {
-      "executor": "@wolsok/nx-aws-cdk-v2:destroy",
-      "options": {}
-    },
-    "bootstrap": {
-      "executor": "@wolsok/nx-aws-cdk-v2:bootstrap",
-      "options": {}
+      "options": { "requireApproval": "never" }
     }
   }
 }
 ```
 
-### Nx Cache Issues
+### A CDK flag has no effect
 
-**Issue**: Nx caching is causing issues with CDK deployments.
+Options are forwarded as `--flag value`, never as a bare flag. Write `--hotswap=true`, not
+`--hotswap`. Confirm with `--verbose` what was actually appended.
 
-**Solution**: You can bypass the Nx cache by using the `--skip-nx-cache` flag:
+## AWS credentials and permissions
 
-```bash
-nx deploy my-cdk-app --skip-nx-cache
+### `Unable to resolve AWS account to use` / `Need to perform AWS calls but no credentials configured`
+
+The AWS SDK found no usable credentials. Verify outside of Nx first:
+
+```shell
+aws sts get-caller-identity
+aws sts get-caller-identity --profile my-profile
 ```
 
-## Common Error Messages
+Then pass the profile to the target, or export `AWS_PROFILE`:
 
-### "Cannot find module 'aws-cdk-lib'"
-
-**Issue**: You get an error saying "Cannot find module 'aws-cdk-lib'" when trying to deploy your CDK application.
-
-**Solution**: Install the AWS CDK library:
-
-```bash
-npm install aws-cdk-lib
+```shell
+nx deploy my-app --profile=my-profile
+AWS_PROFILE=my-profile nx deploy my-app
 ```
 
-### "Unable to resolve AWS account to use"
+### `ExpiredToken` / `The security token included in the request is invalid`
 
-**Issue**: You get an error saying "Unable to resolve AWS account to use" when trying to deploy your CDK application.
+Short-lived credentials expired. Refresh them (`aws sso login --profile my-profile`) and retry.
 
-**Solution**: Configure your AWS credentials:
+### `AccessDenied` during deploy
 
-```bash
-aws configure
+The principal is authenticated but lacks permissions. CDK deploys assume the CDK execution roles
+created during bootstrapping, so check that the environment was bootstrapped with a trust policy your
+principal can assume, and that the roles still exist.
+
+## Deploy, destroy and bootstrap
+
+### `This stack uses assets, so the toolkit stack must be deployed to the environment`
+
+The account/region has not been bootstrapped:
+
+```shell
+nx bootstrap my-app --profile=my-profile
+# or, explicitly
+nx bootstrap my-app aws://123456789012/eu-central-1
 ```
 
-Or specify the profile to use:
+### Deploy hangs waiting for input
 
-```bash
-nx deploy my-cdk-app --profile=my-profile
+A change touches IAM or security groups, and the CDK CLI is asking for confirmation. The generated
+`cdk.json` sets `"requireApproval": "never"`, but the executors do not read it — pass it explicitly,
+especially in CI:
+
+```shell
+nx deploy my-app --requireApproval=never
 ```
 
-### "This stack uses assets, so the toolkit stack must be deployed to the environment"
+### `Stack ... is in ROLLBACK_COMPLETE state and cannot be updated`
 
-**Issue**: You get an error saying "This stack uses assets, so the toolkit stack must be deployed to the environment" when trying to deploy your CDK application.
+CloudFormation state, not a plugin problem: a stack that failed its very first create cannot be
+updated. Delete it and deploy again:
 
-**Solution**: Bootstrap your AWS environment:
-
-```bash
-nx bootstrap my-cdk-app
+```shell
+nx destroy my-app --stacks=MyStack
+nx deploy my-app --stacks=MyStack
 ```
 
-### "Resource already exists"
+### Destroy leaves resources behind
 
-**Issue**: You get an error saying "Resource already exists" when trying to deploy your CDK application.
+Resources with `RemovalPolicy.RETAIN` (the default for stateful resources such as RDS instances and,
+depending on configuration, S3 buckets) are deliberately kept. Non-empty S3 buckets also block
+deletion unless `autoDeleteObjects` is set. Remove them manually or adjust the removal policy before
+destroying.
 
-**Solution**: The resource you're trying to create already exists. You can either:
+### `--stacks` does not select what you expect
 
-1. Use a different name for your resource.
-2. Delete the existing resource.
-3. Update your CDK application to import the existing resource instead of creating a new one.
+The value is appended verbatim to the `cdk` command line, so it follows CDK's stack selection rules:
+names or glob patterns, space separated. Quote multiple stacks — `--stacks="network api"` — and check
+`nx synth my-app` output for the names CDK actually knows.
 
-## Getting Help
+## Output locations and caching
 
-If you encounter an issue not covered in this guide, you can:
+### Where did `cdk.out` go?
 
-1. Check the [AWS CDK documentation](https://docs.aws.amazon.com/cdk/latest/guide/home.html) for general CDK issues.
-2. Open an issue on the [nx-aws-cdk-v2 GitHub repository](https://github.com/WolfSoko/nx-aws-cdk-v2/issues).
-3. Ask for help on the [Nx Community Discord](https://discord.gg/nx).
-4. Search for similar issues on Stack Overflow using the tags `aws-cdk` and `nx`.
+To the **workspace root**, because the executors run `cdk` from there. Add it to `.gitignore`:
 
-When reporting an issue, please include:
+```gitignore
+cdk.out/
+```
 
-1. The version of nx-aws-cdk-v2 you're using.
-2. The version of Nx you're using.
-3. The version of AWS CDK you're using.
-4. The error message you're seeing.
-5. Steps to reproduce the issue.
+### Should I cache these targets?
+
+Cache `synth` — it is a pure function of your source. Never cache `deploy`, `destroy` or `bootstrap`:
+they change remote state, and a cache hit would silently skip a real deployment.
+
+```json
+{
+  "targetDefaults": {
+    "synth": { "cache": true, "inputs": ["default", "^default"] }
+  }
+}
+```
+
+### Nx does not see my changes / stale project graph
+
+Reset the Nx cache and daemon:
+
+```shell
+npx nx reset
+```
+
+## Getting help
+
+1. Re-run with `--verbose` and try the printed `cdk` command by hand.
+2. Check the [AWS CDK v2 developer guide](https://docs.aws.amazon.com/cdk/v2/guide/home.html) if the
+   error comes from the CDK CLI rather than from Nx.
+3. Search the [existing issues](https://github.com/WolfSoko/nx-aws-cdk-v2/issues).
+4. Open a new issue with your Nx version (`npx nx --version`), Node version, the plugin version, the
+   target's configuration from `project.json`, and the `--verbose` output.

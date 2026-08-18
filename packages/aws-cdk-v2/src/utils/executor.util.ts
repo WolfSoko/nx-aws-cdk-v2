@@ -2,7 +2,7 @@ import { exec } from 'child_process';
 
 import { DeployExecutorSchema } from '../executors/deploy/schema';
 import { ParsedExecutorInterface } from '../interfaces/parsed-executor.interface';
-import { logger, detectPackageManager, readJsonFile } from '@nx/devkit';
+import { logger, detectPackageManager, readJsonFile, workspaceRoot } from '@nx/devkit';
 import { BootstrapExecutorSchema } from '../executors/bootstrap/schema';
 import { SynthExecutorSchema } from '../executors/synth/schema';
 import { existsSync } from 'node:fs';
@@ -15,18 +15,26 @@ function getPackageJson(packageJsonPath: string): { type?: string } {
 export const executorPropKeys = ['stacks'];
 export const LARGE_BUFFER = 1024 * 1000000;
 
-const NX_WORKSPACE_ROOT = process.env.NX_WORKSPACE_ROOT ?? '';
-if (!NX_WORKSPACE_ROOT) {
-  throw new Error('CDK not Found');
+/**
+ * Root of the Nx workspace the executor runs in. Nx sets `NX_WORKSPACE_ROOT`
+ * for every task it spawns; the devkit's `workspaceRoot` is the fallback for
+ * the cases where it doesn't (e.g. when an executor is invoked programmatically).
+ * Resolved lazily so importing this module never throws.
+ */
+function getWorkspaceRoot(): string {
+  return process.env.NX_WORKSPACE_ROOT || workspaceRoot;
 }
 
 export function generateCommandString(command: string, appPath: string) {
   const packageManager = detectPackageManager();
   const packageManagerExecutor = packageManager === 'npm' ? 'npx' : packageManager;
 
-  const projectPath = path.join(NX_WORKSPACE_ROOT, appPath);
+  const projectPath = path.join(getWorkspaceRoot(), appPath);
   const moduleType = getModuleType(projectPath);
-  const compileTsPart = moduleType === 'module' ? 'tsx' : `ts-node --require tsconfig-paths/register --project ${path.join(projectPath, 'tsconfig.app.json')}`;
+  const compileTsPart =
+    moduleType === 'module'
+      ? 'tsx'
+      : `ts-node --require tsconfig-paths/register --project ${path.join(projectPath, 'tsconfig.app.json')}`;
   // Determine the path to the app's entrypoint
   const mainTsPath = path.join(projectPath, 'src', 'main.ts');
   const generatePath = `${packageManagerExecutor} ${compileTsPart} ${mainTsPath}`;
@@ -39,17 +47,19 @@ export function parseArgs(
   const keys = Object.keys(options);
   return keys
     .filter((prop) => executorPropKeys.indexOf(prop) < 0)
-    .reduce((acc, key) => {
-      acc[key] = options[key];
-      return acc;
-    }, {} as Record<string, string | string[]>);
+    .reduce(
+      (acc, key) => {
+        acc[key] = options[key];
+        return acc;
+      },
+      {} as Record<string, string | string[]>
+    );
 }
 
 export function createCommand(command: string, options: ParsedExecutorInterface): string {
-  console.log('OptionsParsedExecutorInterface', JSON.stringify(options));
+  logger.debug(`Normalized executor options: ${JSON.stringify(options)}`);
 
   const nodeCommandWithRelativePath = generateCommandString(command, options.root);
-  console.log('nodeCommandWithRelativePath', nodeCommandWithRelativePath);
   const commands = [nodeCommandWithRelativePath];
 
   if (typeof options.stacks === 'string') {
@@ -119,13 +129,15 @@ export function runCommandProcess(command: string, cwd: string): Promise<boolean
 }
 
 function getModuleType(projectPath: string) {
-  const packageJsonPath = path.join(NX_WORKSPACE_ROOT, projectPath, 'package.json');
+  // `projectPath` is already absolute; joining it onto the workspace root again
+  // produced a path that never existed, so an app-level `"type"` was ignored.
+  const packageJsonPath = path.join(projectPath, 'package.json');
   const appPackageJson = getPackageJson(packageJsonPath);
   if (appPackageJson?.type) {
-    console.log('App Package Json', appPackageJson.type);
+    logger.debug(`Module type from ${packageJsonPath}: ${appPackageJson.type}`);
     return appPackageJson.type;
   }
-  const globalPackageJson = getPackageJson(path.join(NX_WORKSPACE_ROOT, 'package.json'));
-  console.log('Global Package Json', globalPackageJson.type);
+  const globalPackageJson = getPackageJson(path.join(getWorkspaceRoot(), 'package.json'));
+  logger.debug(`Module type from workspace package.json: ${globalPackageJson.type ?? 'commonjs'}`);
   return globalPackageJson.type;
 }

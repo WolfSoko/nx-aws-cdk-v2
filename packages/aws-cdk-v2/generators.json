@@ -6,14 +6,15 @@
     "init": {
       "factory": "./src/generators/init/init",
       "schema": "./src/generators/init/schema.json",
-      "description": "init generator",
+      "description": "Add the AWS CDK dependencies to the workspace. Runs automatically as part of the application generator.",
       "aliases": ["ng-add"],
       "hidden": true
     },
     "application": {
       "factory": "./src/generators/application/application",
       "schema": "./src/generators/application/schema.json",
-      "description": "create aws-cdk application"
+      "aliases": ["app"],
+      "description": "Create an AWS CDK v2 application with deploy, destroy, synth and bootstrap targets."
     }
   }
 }

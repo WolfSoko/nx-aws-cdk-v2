@@ -1,13 +1,23 @@
 {
   "$schema": "http://json-schema.org/schema",
-  "title": "synth executor",
-  "description": "",
+  "title": "Synth executor",
+  "description": "Synthesize the CDK app of this project into a CloudFormation template.",
   "type": "object",
   "properties": {
     "stacks": {
       "type": "string",
-      "description": "use synth named STACKS"
+      "description": "Stacks to synthesize. Accepts stack names or glob patterns, space separated. Defaults to every stack in the app."
+    },
+    "profile": {
+      "type": "string",
+      "description": "Name of the AWS profile (from ~/.aws/credentials or ~/.aws/config) to use."
+    },
+    "context": {
+      "oneOf": [{ "type": "string" }, { "type": "array", "items": { "type": "string" } }],
+      "description": "Additional CDK context values as KEY=VALUE pairs. Pass the option multiple times for multiple values.",
+      "alias": "c"
     }
   },
+  "additionalProperties": true,
   "required": []
 }

@@ -2,6 +2,6 @@
   "name": "aws-cdk-v2-e2e",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "projectType": "application",
-  "sourceRoot": "e2e/aws-cdk-v2-e2e/src",
+  "implicitDependencies": ["aws-cdk-v2"],
   "tags": []
 }

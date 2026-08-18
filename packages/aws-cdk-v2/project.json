@@ -33,13 +33,23 @@
             "input": "./packages/aws-cdk-v2",
             "glob": "executors.json",
             "output": "."
+          },
+          {
+            "input": "./packages/aws-cdk-v2",
+            "glob": "migrations.json",
+            "output": "."
+          },
+          {
+            "input": ".",
+            "glob": "LICENSE",
+            "output": "."
           }
         ]
       }
     },
     "lint": {
       "options": {
-        "args": ["**/*.ts", "generators.json", "executors.json", "package.json"]
+        "args": ["**/*.ts", "generators.json", "executors.json", "migrations.json", "package.json"]
       }
     },
     "test": {
@@ -51,7 +61,7 @@
           "externalDependencies": ["jest"]
         }
       ],
-      "outputs": ["{workspaceRoot}\\coverage\\packages\\aws-cdk-v2"],
+      "outputs": ["{workspaceRoot}/coverage/packages/aws-cdk-v2"],
       "options": {
         "passWithNoTests": true
       },

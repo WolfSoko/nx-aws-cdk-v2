@@ -1,13 +1,23 @@
 {
   "$schema": "http://json-schema.org/schema",
-  "title": "deploy executor",
-  "description": "",
+  "title": "Deploy executor",
+  "description": "Deploy the CDK stacks of this project to AWS.",
   "type": "object",
   "properties": {
     "stacks": {
       "type": "string",
-      "description": "use deploy named STACKS"
+      "description": "Stacks to deploy. Accepts stack names or glob patterns, space separated. Defaults to every stack in the app."
+    },
+    "profile": {
+      "type": "string",
+      "description": "Name of the AWS profile (from ~/.aws/credentials or ~/.aws/config) to use."
+    },
+    "context": {
+      "oneOf": [{ "type": "string" }, { "type": "array", "items": { "type": "string" } }],
+      "description": "Additional CDK context values as KEY=VALUE pairs. Pass the option multiple times for multiple values.",
+      "alias": "c"
     }
   },
+  "additionalProperties": true,
   "required": []
 }

@@ -1,12 +1,14 @@
 {
   "$schema": "http://json-schema.org/schema",
-  "id": "AwsCdk",
-  "title": "",
+  "$id": "AwsCdkApplication",
+  "cli": "nx",
+  "title": "Create an AWS CDK v2 application",
+  "description": "Scaffolds an AWS CDK v2 application with deploy, destroy, synth and bootstrap targets.",
   "type": "object",
   "properties": {
     "name": {
       "type": "string",
-      "description": "",
+      "description": "The name of the application.",
       "$default": {
         "$source": "argv",
         "index": 0
@@ -15,28 +17,28 @@
     },
     "tags": {
       "type": "string",
-      "description": "Add tags to the project (used for linting)",
+      "description": "Comma separated list of tags to add to the project (used for linting and for `nx affected` filtering).",
       "alias": "t"
     },
     "directory": {
       "type": "string",
-      "description": "A directory where the project is placed",
+      "description": "The directory the project is placed in, relative to the workspace's apps directory.",
       "alias": "d"
     },
     "skipFormat": {
-      "description": "Skip formatting files",
+      "description": "Skip formatting the generated files with Prettier.",
       "type": "boolean",
       "default": false
     },
     "unitTestRunner": {
-      "description": "Adds the specified unit test runner",
+      "description": "The unit test runner to configure for the generated application.",
       "type": "string",
       "enum": ["jest", "none"],
       "default": "jest"
     },
     "setParserOptionsProject": {
       "type": "boolean",
-      "description": "Whether or not to configure the ESLint \"parserOptions.project\" option. We do not do this by default for lint performance reasons.",
+      "description": "Whether to configure the ESLint \"parserOptions.project\" option. Off by default for lint performance reasons.",
       "default": false
     }
   },

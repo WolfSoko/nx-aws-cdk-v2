@@ -8,3 +8,5 @@
 /.nx/cache
 /.nx/workspace-data
 .nx/self-healing
+# EJS templates rendered by the application generator - not valid TS/JSON on their own
+**/*__template__

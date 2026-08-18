@@ -1,130 +1,117 @@
-[![standard-readme compliant](https://img.shields.io/badge/standard--readme-OK-green.svg?style=flat-square)](https://github.com/RichardLitt/standard-readme)
-[![@wolsok/nx-aws-cdk-v2](https://img.shields.io/badge/%40adrian--goe-nx--aws--cdk-green)](https://github.com/WolfSoko/nx-aws-cdk-v2/tree/main/packages/aws-cdk-v2)
-[![Typescript](https://badgen.net/badge/icon/typescript?icon=typescript&label)](https://www.typescriptlang.org/)
-[![LICENSE](https://img.shields.io/npm/l/@wolsok/nx-aws-cdk-v2.svg)](https://www.npmjs.com/package/@wolsok/nx-aws-cdk-v2)
+[![CI](https://github.com/WolfSoko/nx-aws-cdk-v2/actions/workflows/ci.yml/badge.svg)](https://github.com/WolfSoko/nx-aws-cdk-v2/actions/workflows/ci.yml)
 [![npm version](https://img.shields.io/npm/v/@wolsok/nx-aws-cdk-v2.svg)](https://www.npmjs.com/package/@wolsok/nx-aws-cdk-v2)
 [![Downloads](https://img.shields.io/npm/dm/@wolsok/nx-aws-cdk-v2.svg)](https://www.npmjs.com/package/@wolsok/nx-aws-cdk-v2)
+[![LICENSE](https://img.shields.io/npm/l/@wolsok/nx-aws-cdk-v2.svg)](https://www.npmjs.com/package/@wolsok/nx-aws-cdk-v2)
+[![Typescript](https://badgen.net/badge/icon/typescript?icon=typescript&label)](https://www.typescriptlang.org/)
 
-<hr>
+# Nx AWS CDK v2 plugin
 
-# Nx AWS CDK v2 Plugin
+Monorepo for [`@wolsok/nx-aws-cdk-v2`](./packages/aws-cdk-v2) — an [Nx](https://nx.dev) plugin that
+scaffolds, synthesizes, deploys and destroys [AWS CDK v2](https://docs.aws.amazon.com/cdk/v2/guide/home.html)
+applications inside an Nx workspace.
 
-A comprehensive Nx plugin for developing, deploying, and managing AWS CDK v2 applications within an Nx workspace. This plugin seamlessly integrates the AWS Cloud Development Kit (CDK) v2 with Nx's powerful monorepo capabilities, enabling efficient cloud infrastructure development.
+**Consumer docs live in the [package README](./packages/aws-cdk-v2/README.md) and in [`docs/`](./docs).**
+This file is the map of the repository.
 
-## Table of Contents
+## Table of contents
 
-- [Nx AWS CDK v2 Plugin](#nx-aws-cdk-v2-plugin)
-  - [Table of Contents](#table-of-contents)
-  - [Features](#features)
-  - [Installation](#installation)
-  - [Usage](#usage)
-    - [Generate a New AWS CDK Application](#generate-a-new-aws-cdk-application)
-    - [Available Executors](#available-executors)
-    - [Examples](#examples)
-  - [Plugin](#plugin)
-  - [Benefits of Using This Plugin](#benefits-of-using-this-plugin)
-  - [Maintainers](#maintainers)
-  - [Contributing](#contributing)
-  - [License](#license)
-  - [Special Thanks](#special-thanks)
+- [Why](#why)
+- [Install & quick start](#install--quick-start)
+- [What the plugin ships](#what-the-plugin-ships)
+- [Documentation](#documentation)
+- [Repository layout](#repository-layout)
+- [Working on the plugin](#working-on-the-plugin)
+- [Releasing](#releasing)
+- [Maintainers](#maintainers)
+- [Contributing](#contributing)
+- [License](#license)
+- [Special thanks](#special-thanks)
 
-## Features
+## Why
 
-- **AWS CDK v2 Integration**: Full support for AWS CDK v2 within Nx workspaces
-- **Application Generator**: Quickly scaffold new AWS CDK applications with proper structure
-- **Multiple Executors**: Deploy, synthesize, destroy, and bootstrap AWS CDK applications with ease
-- **Nx Workspace Benefits**: Leverage Nx's caching, dependency graph, and affected commands
-- **TypeScript Support**: Fully typed interfaces for better developer experience
+The AWS CDK is a great fit for a monorepo — but out of the box the `cdk` CLI knows nothing about Nx
+projects, and Nx knows nothing about your infrastructure. This plugin closes that gap:
 
-## Installation
+- **Infrastructure is a first-class Nx project.** It shows up in the project graph, respects tags and
+  module boundaries, and participates in `nx affected`, so you only synth and deploy what changed.
+- **Targets instead of shell scripts.** `nx deploy`, `nx synth`, `nx destroy` and `nx bootstrap`
+  replace a directory of bespoke npm scripts, and can be cached and orchestrated like any other task.
+- **No abstraction to fight.** The executors build a `cdk` command line and run it. Anything the CDK
+  CLI accepts can be passed through, so you never hit a wall the plugin has to grow a feature for.
+- **Typed from the start.** Generated apps are TypeScript, with a Jest test for the stack.
 
-```bash
-# Using npm
+## Install & quick start
+
+```shell
 npm install --save-dev @wolsok/nx-aws-cdk-v2
 
-# Using yarn
-yarn add --dev @wolsok/nx-aws-cdk-v2
-
-# Using pnpm
-pnpm add --save-dev @wolsok/nx-aws-cdk-v2
+nx generate @wolsok/nx-aws-cdk-v2:application my-app
+nx bootstrap my-app --profile=my-profile   # once per AWS account/region
+nx synth my-app
+nx deploy my-app
 ```
 
-## Usage
+Requires Node.js `>= 20.19`, Nx `>= 21`, and AWS credentials the AWS SDK can find. The full option
+reference is in the [package README](./packages/aws-cdk-v2/README.md).
 
-### Generate a New AWS CDK Application
+## What the plugin ships
 
-```bash
-nx generate @wolsok/nx-aws-cdk-v2:application myApp
+| Kind      | Name          | Purpose                                                                            |
+| --------- | ------------- | ---------------------------------------------------------------------------------- |
+| Generator | `application` | Scaffold a CDK v2 app with `deploy`, `synth`, `destroy` and `bootstrap` targets.   |
+| Generator | `init`        | Add the CDK dependencies to the workspace. Hidden — runs as part of `application`. |
+| Executor  | `deploy`      | `cdk deploy` for the project's stacks.                                             |
+| Executor  | `synth`       | `cdk synth` — CloudFormation templates without touching AWS.                       |
+| Executor  | `destroy`     | `cdk destroy` for the project's stacks.                                            |
+| Executor  | `bootstrap`   | `cdk bootstrap` for an AWS environment.                                            |
+
+## Documentation
+
+| Document                                          | What it covers                                                        |
+| ------------------------------------------------- | --------------------------------------------------------------------- |
+| [Package README](./packages/aws-cdk-v2/README.md) | Install, every generator and executor option, how `cdk` is invoked.   |
+| [Getting started](./docs/getting-started.md)      | End-to-end walkthrough from empty workspace to a deployed stack.      |
+| [API reference](./docs/api-documentation.md)      | Schemas, defaults and `project.json` configuration for every target.  |
+| [Architecture](./docs/architecture.md)            | How the plugin is put together and how a target run flows through it. |
+| [Troubleshooting](./docs/troubleshooting.md)      | Symptoms, causes and fixes for the errors people actually hit.        |
+| [Contributing](./CONTRIBUTING.md)                 | Local setup, tests, linking the plugin into a scratch workspace.      |
+| [Changelog](./CHANGELOG.md)                       | Release history.                                                      |
+
+## Repository layout
+
+```text
+packages/aws-cdk-v2/     # the published plugin
+  generators.json        # generator manifest
+  executors.json         # executor manifest
+  migrations.json        # nx migrate entry point
+  src/
+    generators/          # application, init - implementation, schema and templates
+    executors/           # deploy, destroy, synth, bootstrap
+    utils/               # cdk command construction, shared version constants
+e2e/aws-cdk-v2-e2e/      # e2e suite - builds a throwaway workspace and runs real nx commands
+docs/                    # consumer documentation
 ```
 
-You can customize the generation with various options:
+## Working on the plugin
 
-```bash
-nx generate @wolsok/nx-aws-cdk-v2:application [name] [options,...]
-
-Options:
-  --name                      The name of the application
-  --tags                      Add tags to the project (used for linting)
-  --directory                 A directory where the project is placed
-  --skipFormat                Skip formatting files
-  --unitTestRunner            Adds the specified unit test runner (default: jest)
-  --setParserOptionsProject   Whether or not to configure the ESLint "parserOptions.project" option
-  --dryRun                    Runs through and reports activity without writing to disk
-  --skip-nx-cache             Skip the use of Nx cache
+```shell
+npm ci --legacy-peer-deps   # --legacy-peer-deps is required, see CONTRIBUTING.md
+npm run check               # lint + unit tests + build
+npm run e2e:aws-cdk         # end-to-end suite (builds the plugin first)
+npm run format              # prettier
 ```
 
-### Available Executors
+`npm run affected` runs lint, test and build for the projects touched by your branch — the same thing
+CI does.
 
-The plugin provides several executors to manage your AWS CDK applications:
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for testing the plugin against a real workspace.
 
-- **deploy**: Deploy your CDK application to AWS
-- **synth**: Synthesize your CDK application into a CloudFormation template
-- **destroy**: Remove your CDK application from AWS
-- **bootstrap**: Bootstrap AWS environments for CDK deployment
+## Releasing
 
-### Examples
-
-**Deploy an application:**
-
-```bash
-nx deploy myApp
-```
-
-**Synthesize an application:**
-
-```bash
-nx synth myApp
-```
-
-**Destroy an application:**
-
-```bash
-nx destroy myApp
-```
-
-**Bootstrap an AWS environment:**
-
-```bash
-# Using a profile
-nx bootstrap myApp --profile=myProfile
-
-# Using an AWS environment
-nx bootstrap myApp aws://123456789012/us-east-1
-```
-
-## Plugin
-
-| Plugin                                                     | Description                                                                                   |
-| ---------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| [`@wolsok/nx-aws-cdk-v2`](./packages/aws-cdk-v2/README.md) | An Nx plugin for developing [aws-cdk](https://docs.aws.amazon.com/cdk/latest/guide/home.html) |
-
-## Benefits of Using This Plugin
-
-- **Monorepo Management**: Manage multiple CDK applications in a single repository
-- **Dependency Management**: Automatically track and manage dependencies between applications
-- **Efficient Builds**: Leverage Nx's powerful caching for faster builds
-- **Consistent Structure**: Standardized project structure for all CDK applications
-- **Developer Experience**: Improved developer experience with TypeScript support and Nx integration
+Publishing is automated. Creating a GitHub **release** publishes to npm under `latest`, a
+**pre-release** publishes under the `beta` tag. Both run through npm OIDC trusted publishing, so no
+npm token is stored in the repository — see
+[`.github/workflows/release.yml`](./.github/workflows/release.yml).
 
 ## Maintainers
 
@@ -132,17 +119,14 @@ nx bootstrap myApp aws://123456789012/us-east-1
 
 ## Contributing
 
-See [the contributing file](CONTRIBUTING.md)!
-
-PRs accepted.
-
-If editing the README, please conform to the [standard-readme](https://github.com/RichardLitt/standard-readme) specification.
+PRs are welcome — see [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 ## License
 
-This project is MIT licensed 2022 Wolfram Sokollek
+MIT © 2022 Wolfram Sokollek — see [LICENSE](./LICENSE).
 
-## Special Thanks
+## Special thanks
 
-This Project is based on [@adrian-goe](https://github.com/adrian-goe)'s
-[nx-plugins](https://github.com/adrian-goe/nx-aws-cdk-v2).
+This project is based on [@adrian-goe](https://github.com/adrian-goe)'s
+[nx-aws-cdk-v2](https://github.com/adrian-goe/nx-aws-cdk-v2), which in turn builds on
+[@tienne](https://github.com/tienne)'s [nx-plugins](https://github.com/codebrewlab/nx-plugins).

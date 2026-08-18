@@ -8,31 +8,36 @@ This is the source repo for `@wolsok/nx-aws-cdk-v2`, an Nx plugin that scaffolds
 
 ## Commands
 
-Install deps: `npm i`
+Install deps: `npm ci --legacy-peer-deps` (plain `npm ci`/`npm i` fails on peer deps — the Angular DevKit packages the Nx devkit pulls in declare peer ranges npm can't satisfy strictly).
 
+- `npm run check` — lint + unit tests + build for every project
+- `npm run affected` — the same three targets for what the branch changed (what CI runs)
 - `npm run test` — unit tests for the plugin (`nx test aws-cdk-v2`, Jest)
 - `npm run lint` — lint the plugin (`nx lint aws-cdk-v2`)
 - `npm run build:aws-cdk` — build the plugin (`nx build aws-cdk-v2`)
 - `npm run e2e:aws-cdk` — e2e tests (`nx e2e aws-cdk-v2-e2e`); e2e depends on `aws-cdk-v2:build` (see `nx.json` targetDefaults) so the plugin is rebuilt first automatically
-- `npm run format` — `nx format:write`
+- `npm run format` / `npm run format:check` — Prettier via Nx; CI fails on unformatted files
 - Run a single unit test file: `npx nx test aws-cdk-v2 --testFile=<path>` or use Jest's `-t "<test name>"` via `npx nx test aws-cdk-v2 -- -t "<pattern>"`
-- Run only affected targets (what CI does): `npx nx affected -t lint test build`
-- CI additionally runs e2e via the Nx Cloud/e2e pipeline defined by the `@nx/jest/plugin` e2e config in `nx.json`
 
-Local plugin testing (per CONTRIBUTING.md): build the plugin, then `cd dist/packages/aws-cdk-v2 && npm link`, then in a test workspace `npm link @wolsok/nx-aws-cdk-v2`.
+CI (`.github/workflows/ci.yml`) has two jobs: `main` runs `nx format:check` then `npx nx affected -t lint test build`; `e2e` runs the full e2e suite. Nx Cloud is unreachable in some sandboxes — prefix commands with `NX_NO_CLOUD=true` if the run fails on "Unable to retrieve Nx Cloud bundle".
+
+Local plugin testing (per CONTRIBUTING.md): build the plugin, then `npm run link:aws-cdk`, then in a test workspace `npm link @wolsok/nx-aws-cdk-v2`.
 
 ## Architecture
 
-- `packages/aws-cdk-v2/generators.json` and `executors.json` are the Nx plugin manifests — they map generator/executor names to their factory/implementation files and JSON schemas. When adding a new generator or executor, register it here as well as in `package.json`'s `generators`/`executors` fields.
-- Each generator/executor lives in its own directory under `src/generators/*` or `src/executors/*` with: the implementation `.ts`, a `schema.json` (input options) and generated `schema.d.ts` (typed options interface), and a co-located `.spec.ts`.
-- The `application` generator uses template files under `src/generators/application/files/**/*__template__` (EJS-style Nx templates) to scaffold a new CDK app's `main.ts`, stack, `cdk.json`, and `tsconfig.*.json`; `jest-files/**/*__template__` scaffolds the generated app's own test file.
-- Executors (`deploy`, `destroy`, `synth`, `bootstrap`) shell out to the `cdk` CLI (via the workspace's `node_modules/.bin/cdk` or `aws-cdk`'s `bin/cdk.js`) using the generated app's `main.ts` as the CDK app entry point.
-- `src/utils` holds shared helpers used across generators/executors (e.g. resolving project paths/config).
+See `docs/architecture.md` for the long form. Key points:
+
+- `packages/aws-cdk-v2/generators.json` and `executors.json` are the Nx plugin manifests — they map generator/executor names to their factory/implementation files and JSON schemas. When adding a new generator or executor, register it here, export it from `src/index.ts`, and document it in the package README plus `docs/api-documentation.md`. The `@nx/nx-plugin-checks` lint rule (see `eslint.config.mjs`) fails if a manifest points at a file that doesn't exist.
+- Each generator/executor lives in its own directory under `src/generators/*` or `src/executors/*` with: the implementation `.ts`, a `schema.json` (input options), a hand-written `schema.d.ts` (typed options interface), and a co-located `.spec.ts`.
+- The `application` generator uses template files under `src/generators/application/files/**/*__template__` (EJS-style Nx templates) to scaffold a new CDK app's `main.ts`, stack, `cdk.json`, and `tsconfig.*.json`; `jest-files/**/*__template__` scaffolds the generated app's own test file. `*__template__` files are excluded from ESLint and Prettier.
+- Executors shell out to the `cdk` CLI and run it **from the workspace root** with an explicit `-a "<pm-exec> <loader> <project>/src/main.ts"`, so the generated `cdk.json` is not read by them and `cdk.out` lands at the workspace root. `src/utils/executor.util.ts` builds that command; unknown executor options are forwarded verbatim as `--<key> <value>`.
+- `src/utils/cdk-shared.ts` holds the dependency versions the `init` generator installs. `aws-cdk` (CLI, `2.1xxx.x`) and `aws-cdk-lib` (library, `2.x`) are separate release lines and have separate constants — don't collapse them.
 - Path mapping: `@wolsok/nx-aws-cdk-v2` resolves to `packages/aws-cdk-v2/src/index.ts` (see `tsconfig.base.json`), which is the plugin's public entry point.
 
 ### e2e tests
 
 `e2e/aws-cdk-v2-e2e/tests/aws-cdk.spec.ts` builds a throwaway Nx workspace via `@nx/plugin/testing` (`ensureNxProject`), installs the built plugin from `dist/packages/aws-cdk-v2`, and runs real `nx generate`/`nx run` commands against it. Notable patterns used there:
+
 - Project config is read back via `nx show project <name> --json` rather than reading files directly.
 - The `deploy` test replaces the workspace's `cdk` binary with a stub shell script that logs its invocation to a temp file (under `tmp/cdk-stub-<plugin>/invocation.log`) instead of calling real AWS/CDK, and restores the original binary in a `finally` block — follow this pattern for any new test that needs to observe CDK CLI invocations without hitting AWS.
 - The `synth` test runs the real `cdk` CLI (no stub) and asserts against the emitted `cdk.out/manifest.json`/`<name>.template.json`.
@@ -41,6 +46,7 @@ Local plugin testing (per CONTRIBUTING.md): build the plugin, then `cd dist/pack
 
 ## Notes
 
-- Node version is pinned via `.nvmrc` to `lts/*`; CI uses Node 20.
+- Node version is pinned via `.nvmrc` to `lts/*`; the plugin declares `engines.node >= 20.19`.
 - Workspace layout is non-default: apps live under `e2e/`, libs under `packages/` (see `nx.json` `workspaceLayout`).
-- `npm ci --legacy-peer-deps` is required (see CI workflow) — plain `npm ci`/`npm i` may fail on peer deps.
+- TypeScript is on `module`/`moduleResolution: node16` with `isolatedModules: true` and no deprecated compiler options — don't reintroduce `baseUrl` or `ignoreDeprecations`.
+- Consumer-facing docs live in `packages/aws-cdk-v2/README.md` (the npm page) and `docs/`. `docs/tasks.md` is a maintainer backlog, not consumer documentation. Keep them in sync when behaviour changes.

@@ -1,7 +1,28 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:recommended"],
-  "enabledManagers": ["npm"],
+  "extends": ["config:recommended", ":semanticCommitTypeAll(chore)"],
+  "enabledManagers": ["npm", "github-actions"],
   "automerge": true,
-  "dependencyDashboard": true
+  "dependencyDashboard": true,
+  "lockFileMaintenance": {
+    "enabled": true,
+    "automerge": true
+  },
+  "packageRules": [
+    {
+      "description": "Nx and its plugins have to move in lockstep, otherwise the workspace fails to load.",
+      "groupName": "nx monorepo",
+      "matchPackageNames": ["nx", "@nx/**", "nx-cloud"]
+    },
+    {
+      "description": "The CDK CLI and the construct library are released on separate version lines but are used together.",
+      "groupName": "aws-cdk",
+      "matchPackageNames": ["aws-cdk", "aws-cdk-lib", "constructs"]
+    },
+    {
+      "description": "Major upgrades of the toolchain deserve a human look.",
+      "matchUpdateTypes": ["major"],
+      "automerge": false
+    }
+  ]
 }
