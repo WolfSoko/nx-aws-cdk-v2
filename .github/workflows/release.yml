@@ -17,11 +17,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # No registry-url here: actions/setup-node writes an _authToken line to
+      # .npmrc referencing NODE_AUTH_TOKEN whenever registry-url is set, even
+      # though it's unused now. That placeholder makes npm think token auth is
+      # already configured, so it skips the OIDC trusted-publishing handshake
+      # (see actions/setup-node#1551). npm publishes to the default registry
+      # (registry.npmjs.org) without it.
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
-          registry-url: 'https://registry.npmjs.org'
           cache: npm
 
       - name: Install dependencies
@@ -30,9 +35,10 @@ jobs:
         env:
           CI: true
 
-      # npm >=11.5.1 is required for OIDC trusted publishing.
+      # OIDC trusted publishing requires npm >=11.5.1; pin to a known-good
+      # major so a future npm release can't silently change publish behavior.
       - name: Update npm
-        run: npm install -g npm@latest
+        run: npm install -g "npm@>=11.5.1 <12"
 
       - name: Set Version
         run: npm --prefix ./packages/aws-cdk-v2 version ${{ github.ref_name }}
