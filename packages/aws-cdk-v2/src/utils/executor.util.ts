@@ -2,11 +2,15 @@ import { exec } from 'child_process';
 
 import { DeployExecutorSchema } from '../executors/deploy/schema';
 import { ParsedExecutorInterface } from '../interfaces/parsed-executor.interface';
-import { logger, detectPackageManager } from '@nx/devkit';
+import { logger, detectPackageManager, readJsonFile } from '@nx/devkit';
 import { BootstrapExecutorSchema } from '../executors/bootstrap/schema';
 import { SynthExecutorSchema } from '../executors/synth/schema';
-import { getPackageJson } from '@nx/eslint-plugin/src/utils/package-json-utils';
+import { existsSync } from 'node:fs';
 import * as path from 'node:path';
+
+function getPackageJson(packageJsonPath: string): { type?: string } {
+  return existsSync(packageJsonPath) ? readJsonFile(packageJsonPath) : {};
+}
 
 export const executorPropKeys = ['stacks'];
 export const LARGE_BUFFER = 1024 * 1000000;

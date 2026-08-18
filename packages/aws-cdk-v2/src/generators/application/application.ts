@@ -105,7 +105,15 @@ export async function applicationGenerator(host: Tree, options: ApplicationSchem
   addFiles(host, normalizedOptions);
 
   if (normalizedOptions.unitTestRunner === 'jest') {
-    const jestTask = await configurationGenerator(host, {
+    // `configurationGenerator` forwards its whole options object to `@nx/js`'s init
+    // generator, where `skipFormat` only guards the formatFiles call - `ensurePackage`
+    // for prettier still runs unless `formatter: 'none'` is set too. Since we already
+    // skip formatting here, also skip ensuring prettier: requiring the real prettier
+    // package from inside Jest's own module sandbox (i.e. when this generator runs in
+    // a unit test) crashes with "dynamic import callback ... without --experimental-vm-modules".
+    // `formatter` isn't part of JestProjectSchema's public type, so build the options
+    // object separately to avoid TypeScript's excess-property check on the call site.
+    const jestConfigOptions = {
       project: normalizedOptions.projectName,
       setupFile: 'none',
       skipSerializers: true,
@@ -113,7 +121,9 @@ export async function applicationGenerator(host: Tree, options: ApplicationSchem
       babelJest: false,
       testEnvironment: 'node',
       skipFormat: true,
-    });
+      formatter: 'none',
+    } as const;
+    const jestTask = await configurationGenerator(host, jestConfigOptions);
     tasks.push(jestTask);
     addJestFiles(host, normalizedOptions);
   }

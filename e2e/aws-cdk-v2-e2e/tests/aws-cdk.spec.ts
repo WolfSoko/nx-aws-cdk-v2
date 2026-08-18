@@ -3,12 +3,18 @@ import {
   ensureNxProject,
   readJson,
   runNxCommandAsync,
+  tmpProjPath,
   uniq,
   updateFile,
 } from '@nx/plugin/testing';
 import { ProjectConfiguration, logger } from '@nx/devkit';
 import { chmodSync, existsSync, mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from 'node:fs';
 import * as path from 'node:path';
+
+// Disable the Nx daemon for spawned `nx` commands: with the daemon on, `nx show project`
+// can read a stale project graph right after a generator creates a new project, causing
+// "Could not find project" failures in back-to-back commands.
+process.env.NX_DAEMON = 'false';
 
 describe('aws-cdk-v2 e2e', () => {
   beforeAll(async () => {
@@ -120,7 +126,7 @@ describe('aws-cdk-v2 e2e', () => {
     expect(() => checkFilesExist(`cdk.out/${plugin}.template.json`)).not.toThrow();
     expect(() => checkFilesExist(`cdk.out/manifest.json`)).not.toThrow();
 
-    const manifest = JSON.parse(readFileSync(path.join(process.cwd(), 'cdk.out', 'manifest.json'), 'utf-8'));
+    const manifest = JSON.parse(readFileSync(tmpProjPath('cdk.out/manifest.json'), 'utf-8'));
     const artifact = manifest?.artifacts?.[plugin];
 
     expect(artifact?.type).toBe('aws:cloudformation:stack');
