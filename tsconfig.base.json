@@ -17,7 +17,11 @@
     "baseUrl": ".",
     "paths": {
       "@wolsok/nx-aws-cdk-v2": ["packages/aws-cdk-v2/src/index.ts"]
-    }
+    },
+    "strict": false,
+    "noUncheckedSideEffectImports": false,
+    "types": ["*"],
+    "ignoreDeprecations": "6.0"
   },
   "exclude": ["node_modules", "tmp"]
 }
