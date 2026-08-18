@@ -6,6 +6,7 @@ This document provides detailed API documentation for all executors and generato
 
 - [Executors](#executors)
   - [Deploy Executor](#deploy-executor)
+  - [Synth Executor](#synth-executor)
   - [Destroy Executor](#destroy-executor)
   - [Bootstrap Executor](#bootstrap-executor)
 - [Generators](#generators)
@@ -43,6 +44,34 @@ nx deploy my-cdk-app --stacks="MyStack1,MyStack2"
 **Implementation Details:**
 
 The Deploy executor creates a CDK deploy command with the specified options and runs it in the project's directory. It normalizes the options, creates the command, and executes it using the AWS CDK CLI.
+
+### Synth Executor
+
+The Synth executor is used to synthesize AWS CDK applications into CloudFormation templates without deploying them.
+
+**Usage:**
+```bash
+nx synth <project-name> [options]
+```
+
+**Options:**
+
+| Option | Type | Description |
+| ------ | ---- | ----------- |
+| `stacks` | string | Specifies which stacks to synthesize. If not provided, all stacks in the application will be synthesized. |
+
+**Example:**
+```bash
+# Synthesize all stacks in the application
+nx synth my-cdk-app
+
+# Synthesize specific stacks
+nx synth my-cdk-app --stacks="MyStack1,MyStack2"
+```
+
+**Implementation Details:**
+
+The Synth executor creates a CDK synth command with the specified options and runs it in the project's directory. It normalizes the options, creates the command, and executes it using the AWS CDK CLI. The emitted templates are written to the application's `cdk.out` directory.
 
 ### Destroy Executor
 
@@ -144,7 +173,7 @@ nx generate @wolsok/nx-aws-cdk-v2:application my-cdk-app --unitTestRunner=none
 The Application generator creates a new AWS CDK application with the specified options. It:
 1. Normalizes the options
 2. Runs the Init generator to set up the necessary dependencies
-3. Creates the project configuration with deploy, destroy, and bootstrap targets
+3. Creates the project configuration with deploy, synth, destroy, and bootstrap targets
 4. Adds the application files from templates
 5. Optionally sets up Jest for testing
 6. Formats the files (unless skipFormat is true)
