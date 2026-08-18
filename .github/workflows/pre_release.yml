@@ -40,8 +40,13 @@ jobs:
       - name: Update npm
         run: npm install -g "npm@>=11.5.1 <12"
 
+      # --allow-same-version: `npm version X` exits 1 with "Version not changed"
+      # when package.json already declares X. The checked-in version is kept in
+      # sync with the released tag, so that is the normal case, not an error.
+      # --no-git-tag-version: this is a detached checkout of the tag that gets
+      # thrown away, so there is no point committing and tagging in it.
       - name: Set Version
-        run: npm --prefix ./packages/aws-cdk-v2 version ${{ github.ref_name }}
+        run: npm --prefix ./packages/aws-cdk-v2 version ${{ github.ref_name }} --allow-same-version --no-git-tag-version
 
       - name: build
         run: npm run build:aws-cdk
