@@ -40,7 +40,7 @@ This document contains a detailed list of actionable improvement tasks for the n
 [ ] Add support for CDK watch mode in executors
 [ ] Implement a new generator for creating CDK constructs
 [ ] Add support for CDK diff command as a new executor
-[ ] Implement CDK synth command as a new executor
+[x] Implement CDK synth command as a new executor
 [ ] Add support for CDK context management
 [ ] Implement integration with AWS SSO for authentication
 [ ] Add support for CDK hot swapping for faster development

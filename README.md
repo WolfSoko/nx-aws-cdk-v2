@@ -32,7 +32,7 @@ A comprehensive Nx plugin for developing, deploying, and managing AWS CDK v2 app
 
 - **AWS CDK v2 Integration**: Full support for AWS CDK v2 within Nx workspaces
 - **Application Generator**: Quickly scaffold new AWS CDK applications with proper structure
-- **Multiple Executors**: Deploy, destroy, and bootstrap AWS CDK applications with ease
+- **Multiple Executors**: Deploy, synthesize, destroy, and bootstrap AWS CDK applications with ease
 - **Nx Workspace Benefits**: Leverage Nx's caching, dependency graph, and affected commands
 - **TypeScript Support**: Fully typed interfaces for better developer experience
 
@@ -78,22 +78,32 @@ Options:
 The plugin provides several executors to manage your AWS CDK applications:
 
 - **deploy**: Deploy your CDK application to AWS
+- **synth**: Synthesize your CDK application into a CloudFormation template
 - **destroy**: Remove your CDK application from AWS
 - **bootstrap**: Bootstrap AWS environments for CDK deployment
 
 ### Examples
 
 **Deploy an application:**
+
 ```bash
 nx deploy myApp
 ```
 
+**Synthesize an application:**
+
+```bash
+nx synth myApp
+```
+
 **Destroy an application:**
+
 ```bash
 nx destroy myApp
 ```
 
 **Bootstrap an AWS environment:**
+
 ```bash
 # Using a profile
 nx bootstrap myApp --profile=myProfile
