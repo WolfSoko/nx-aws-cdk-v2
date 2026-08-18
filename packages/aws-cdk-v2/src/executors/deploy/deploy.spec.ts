@@ -31,7 +31,7 @@ describe('aws-cdk-v2 deploy Executor', () => {
   afterEach(() => jest.clearAllMocks());
 
   it('run cdk deploy command', async () => {
-    const execMock = (childProcess.exec as unknown) as jest.Mock;
+    const execMock = childProcess.exec as unknown as jest.Mock;
     let mockProcess;
     execMock.mockImplementation(() => {
       mockProcess = new MockChildProcess();
@@ -52,7 +52,7 @@ describe('aws-cdk-v2 deploy Executor', () => {
   });
 
   it('run cdk deploy command stack', async () => {
-    const execMock = (childProcess.exec as unknown) as jest.Mock;
+    const execMock = childProcess.exec as unknown as jest.Mock;
     let mockProcess;
     execMock.mockImplementation(() => {
       mockProcess = new MockChildProcess();
@@ -76,7 +76,7 @@ describe('aws-cdk-v2 deploy Executor', () => {
   });
 
   it('run cdk deploy command context options', async () => {
-    const execMock = (childProcess.exec as unknown) as jest.Mock;
+    const execMock = childProcess.exec as unknown as jest.Mock;
     let mockProcess;
     execMock.mockImplementation(() => {
       mockProcess = new MockChildProcess();
@@ -102,7 +102,7 @@ describe('aws-cdk-v2 deploy Executor', () => {
   });
 
   it('run cdk deploy command with multiple context options', async () => {
-    const execMock = (childProcess.exec as unknown) as jest.Mock;
+    const execMock = childProcess.exec as unknown as jest.Mock;
     let mockProcess;
     execMock.mockImplementation(() => {
       mockProcess = new MockChildProcess();
@@ -126,26 +126,26 @@ describe('aws-cdk-v2 deploy Executor', () => {
     expect(logger.debug).toHaveBeenLastCalledWith(`Executing command: ${nodeCommandWithRelativePath} ${contextCmd}`);
   });
 
-  it('run cdk deploy command with boolean context option', async () => {
-    const execMock = (childProcess.exec as unknown) as jest.Mock;
+  it('forwards options that are not part of the schema to the cdk cli', async () => {
+    const execMock = childProcess.exec as unknown as jest.Mock;
     let mockProcess;
     execMock.mockImplementation(() => {
       mockProcess = new MockChildProcess();
       return mockProcess;
     });
     const option: DeployExecutorSchema = Object.assign({}, options);
-    option['context'] = true;
+    option['hotswap'] = true;
     const promise = executor(option, context);
     mockProcess.emit('close', 0);
     await promise;
     expect(childProcess.exec).toHaveBeenCalledWith(
-      `${nodeCommandWithRelativePath} --context true`,
+      `${nodeCommandWithRelativePath} --hotswap true`,
       expect.objectContaining({
         env: process.env,
         maxBuffer: LARGE_BUFFER,
       })
     );
 
-    expect(logger.debug).toHaveBeenLastCalledWith(`Executing command: ${nodeCommandWithRelativePath} --context true`);
+    expect(logger.debug).toHaveBeenLastCalledWith(`Executing command: ${nodeCommandWithRelativePath} --hotswap true`);
   });
 });

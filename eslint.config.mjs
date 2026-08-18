@@ -1,8 +1,8 @@
 import { FlatCompat } from '@eslint/eslintrc';
 import eslintConfigPrettier from 'eslint-config-prettier';
-import eslintPluginJson from 'eslint-plugin-json';
 import nxEslintPlugin from '@nx/eslint-plugin';
 import js from '@eslint/js';
+import jsoncParser from 'jsonc-eslint-parser';
 
 const __dirname = import.meta.dirname;
 
@@ -12,11 +12,11 @@ const compat = new FlatCompat({
 });
 
 export default [
+  { ignores: ['**/dist', '**/coverage', '**/tmp', '**/node_modules', '**/*__template__'] },
   eslintConfigPrettier,
   {
     plugins: {
       '@nx': nxEslintPlugin,
-      json: eslintPluginJson,
     },
   },
   {
@@ -51,5 +51,13 @@ export default [
       ...config.rules,
     },
   })),
-  { ignores: ['**/*.json'] },
+  // Validate that generators.json / executors.json point at files that exist and
+  // that every schema is valid - catches a broken plugin manifest before publish.
+  {
+    files: ['**/generators.json', '**/executors.json', '**/migrations.json', '**/package.json'],
+    languageOptions: { parser: jsoncParser },
+    rules: {
+      '@nx/nx-plugin-checks': 'error',
+    },
+  },
 ];

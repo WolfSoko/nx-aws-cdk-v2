@@ -2,7 +2,14 @@ import { addDependenciesToPackageJson, convertNxGenerator, formatFiles, Generato
 import { jestInitGenerator } from '@nx/jest';
 
 import { InitGeneratorSchema } from './schema';
-import { CDK_CONSTRUCTS_VERSION, CDK_VERSION } from '../../utils/cdk-shared';
+import {
+  CDK_CLI_VERSION,
+  CDK_CONSTRUCTS_VERSION,
+  CDK_LIB_VERSION,
+  TS_NODE_VERSION,
+  TSCONFIG_PATHS_VERSION,
+  TSX_VERSION,
+} from '../../utils/cdk-shared';
 
 function normalizeOptions(schema: InitGeneratorSchema) {
   return {
@@ -22,11 +29,18 @@ export async function initGenerator(host: Tree, options: InitGeneratorSchema) {
   const installTask = addDependenciesToPackageJson(
     host,
     {
-      'aws-cdk': CDK_VERSION,
-      'aws-cdk-lib': CDK_VERSION,
+      'aws-cdk-lib': CDK_LIB_VERSION,
       constructs: CDK_CONSTRUCTS_VERSION,
     },
-    {}
+    {
+      // The CDK Toolkit and the TypeScript loaders are only ever invoked by the
+      // executors, so they belong in devDependencies rather than shipping with
+      // whatever the workspace publishes.
+      'aws-cdk': CDK_CLI_VERSION,
+      'ts-node': TS_NODE_VERSION,
+      'tsconfig-paths': TSCONFIG_PATHS_VERSION,
+      tsx: TSX_VERSION,
+    }
   );
 
   if (!schema.skipFormat) {

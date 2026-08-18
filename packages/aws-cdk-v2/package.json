@@ -1,24 +1,48 @@
 {
   "name": "@wolsok/nx-aws-cdk-v2",
   "version": "2.6.0",
+  "description": "Nx plugin to generate, synthesize, deploy and destroy AWS CDK v2 applications inside an Nx workspace.",
   "main": "src/index.js",
+  "types": "src/index.d.ts",
   "generators": "./generators.json",
   "executors": "./executors.json",
-  "keywords": [
-    "nx",
-    "aws-cdk",
-    "monorepo",
-    "aws cdk",
-    "Node"
-  ],
-  "ng-update": {
-    "requirements": {},
+  "nx-migrations": {
     "migrations": "./migrations.json"
   },
+  "keywords": [
+    "nx",
+    "nx-plugin",
+    "aws",
+    "aws-cdk",
+    "aws cdk",
+    "cdk",
+    "cdk-v2",
+    "cloudformation",
+    "infrastructure-as-code",
+    "monorepo",
+    "Node"
+  ],
   "author": "Wolfram Sokollek",
+  "homepage": "https://github.com/WolfSoko/nx-aws-cdk-v2/tree/main/packages/aws-cdk-v2#readme",
+  "bugs": {
+    "url": "https://github.com/WolfSoko/nx-aws-cdk-v2/issues"
+  },
   "repository": {
     "type": "git",
-    "url": "git@github.com:WolfSoko/nx-aws-cdk-v2"
+    "url": "git+https://github.com/WolfSoko/nx-aws-cdk-v2.git",
+    "directory": "packages/aws-cdk-v2"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "peerDependencies": {
+    "@nx/devkit": ">=21.0.0",
+    "@nx/jest": ">=21.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@nx/jest": {
+      "optional": true
+    }
+  }
 }

@@ -4,22 +4,22 @@
     "deploy": {
       "implementation": "./src/executors/deploy/deploy",
       "schema": "./src/executors/deploy/schema.json",
-      "description": "build executor"
+      "description": "Deploy the CDK stacks of a project to AWS."
     },
     "destroy": {
       "implementation": "./src/executors/destroy/destroy",
       "schema": "./src/executors/destroy/schema.json",
-      "description": "destroy executor"
+      "description": "Destroy the deployed CDK stacks of a project."
     },
     "synth": {
       "implementation": "./src/executors/synth/synth",
       "schema": "./src/executors/synth/schema.json",
-      "description": "synth executor"
+      "description": "Synthesize the CDK app of a project into a CloudFormation template."
     },
     "bootstrap": {
       "implementation": "./src/executors/bootstrap/bootstrap",
       "schema": "./src/executors/bootstrap/schema.json",
-      "description": "bootstrap executor"
+      "description": "Bootstrap an AWS environment for CDK deployments."
     }
   }
 }

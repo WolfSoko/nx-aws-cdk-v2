@@ -1,90 +1,68 @@
-# Improvement Tasks for nx-aws-cdk-v2
+# Maintainer backlog
 
-This document contains a detailed list of actionable improvement tasks for the nx-aws-cdk-v2 repository. Each task is logically ordered and covers both architectural and code-level improvements.
+Internal improvement backlog for the repository. This is **not** consumer documentation — start at
+the [package README](../packages/aws-cdk-v2/README.md) if you are using the plugin.
 
-## Documentation Improvements
+`[x]` means done and on `main`.
 
-[x] Enhance the root README.md with more comprehensive information about the plugin's purpose, features, and usage examples
-[x] Add detailed API documentation for all executors and generators
-[x] Create a comprehensive getting started guide with step-by-step examples
-[x] Add troubleshooting section to documentation with common issues and solutions
-[ ] Create architecture documentation explaining the plugin's design and components
-[ ] Add diagrams illustrating the workflow and integration with AWS CDK
-[ ] Document all configuration options with examples and best practices
-[ ] Create changelog and versioning documentation
+## Documentation
 
-## Testing Improvements
+- [x] Comprehensive root README covering purpose, features and usage
+- [x] API reference for every executor and generator, matching the shipped schemas
+- [x] Getting started guide with an end-to-end walkthrough
+- [x] Troubleshooting guide with symptoms, causes and fixes
+- [x] Architecture documentation explaining the plugin's design and components
+- [x] Document all configuration options with examples and best practices
+- [x] Changelog and documented release process
+- [ ] Rendered diagrams (the architecture doc currently uses ASCII flow diagrams)
+- [ ] Publish the docs as a site rather than as Markdown in the repo
 
-[ ] Implement unit tests for all executors (deploy, destroy, bootstrap)
-[ ] Complete the skipped bootstrap e2e tests using localstack as mentioned in the TODO
-[ ] Add e2e tests for deploy and destroy executors
-[ ] Increase test coverage to at least 80% for all components
-[ ] Implement integration tests with actual AWS CDK commands (using mocks)
-[ ] Add snapshot tests for generated files
-[ ] Implement CI pipeline tests for different Node.js versions
-[ ] Add performance tests for large CDK applications
+## Testing
 
-## Code Quality Improvements
+- [x] Unit tests for all executors (deploy, destroy, synth, bootstrap)
+- [x] e2e coverage for generate, synth and deploy
+- [ ] Complete the skipped bootstrap e2e tests (LocalStack or an equivalent emulator)
+- [ ] e2e coverage for destroy
+- [ ] Raise unit test coverage to at least 80% and enforce it in CI
+- [ ] Snapshot tests for the generated files
+- [ ] Run CI against multiple Node.js versions
 
-[ ] Refactor executor implementations to improve code reuse and maintainability
-[ ] Add more comprehensive error handling and user-friendly error messages
-[ ] Implement logging improvements with different verbosity levels
-[ ] Update TypeScript interfaces for better type safety
-[ ] Add input validation for all executor and generator options
-[ ] Refactor utility functions for better modularity
-[ ] Implement consistent coding style across the codebase
-[ ] Add more comments to complex code sections
+## Code quality
 
-## Feature Enhancements
+- [x] Replace ad-hoc `console.log` output with the Nx logger
+- [x] Type the executor and generator schemas properly
+- [x] Validate the plugin manifests in CI (`@nx/nx-plugin-checks`)
+- [ ] Factor the four near-identical executors onto a shared base implementation
+- [ ] Input validation with actionable error messages for executor and generator options
+- [ ] Enable `strict` in `tsconfig.base.json` and fix the fallout
 
-[ ] Add support for CDK watch mode in executors
-[ ] Implement a new generator for creating CDK constructs
-[ ] Add support for CDK diff command as a new executor
-[x] Implement CDK synth command as a new executor
-[ ] Add support for CDK context management
-[ ] Implement integration with AWS SSO for authentication
-[ ] Add support for CDK hot swapping for faster development
-[ ] Implement asset bundling optimizations
+## Features
 
-## Architecture Improvements
+- [x] `synth` executor
+- [ ] `diff` executor
+- [ ] Watch mode (`cdk watch`) support
+- [ ] Generator for CDK constructs
+- [ ] Hotswap-friendly defaults for local development
+- [ ] CDK context management helpers
 
-[ ] Refactor executors to use a common base implementation
-[ ] Implement a more modular architecture for better extensibility
-[ ] Add plugin configuration options for customizing behavior
-[ ] Improve error handling architecture with custom error classes
-[ ] Implement a caching mechanism for faster execution
-[ ] Add support for plugin extensions and hooks
-[ ] Refactor to use dependency injection for better testability
-[ ] Implement a more robust logging system
+## Build and CI/CD
 
-## Build and CI/CD Improvements
+- [x] Automated release to npm via OIDC trusted publishing
+- [x] Formatting and lint checks in CI
+- [x] Automated dependency updates (Renovate), grouped for Nx and the CDK
+- [x] e2e suite running in CI
+- [ ] Code coverage reporting
+- [ ] Cross-platform testing (Windows, macOS)
 
-[ ] Update GitHub Actions workflow for more comprehensive testing
-[ ] Implement automated release process with semantic versioning
-[ ] Add code quality checks to CI pipeline (linting, formatting)
-[ ] Implement automated dependency updates with security checks
-[ ] Add code coverage reporting to CI pipeline
-[ ] Implement automated documentation generation and publishing
-[ ] Add performance benchmarking to CI pipeline
-[ ] Implement cross-platform testing (Windows, Linux, macOS)
+## Dependencies
 
-## Dependency Management
+- [x] Track the CDK CLI and the construct library as separate version lines
+- [x] Declare `@nx/devkit` / `@nx/jest` as peer dependencies with documented ranges
+- [x] Document Node.js and Nx version requirements
+- [ ] Periodic audit of transitive vulnerabilities beyond what Renovate automates
 
-[ ] Update AWS CDK dependencies to latest versions
-[ ] Audit and update all dependencies for security vulnerabilities
-[ ] Implement peer dependency management for better compatibility
-[ ] Add dependency version constraints for better stability
-[ ] Reduce bundle size by optimizing dependencies
-[ ] Implement dependency injection for better testability
-[ ] Document dependency requirements and compatibility
+## User experience
 
-## User Experience Improvements
-
-[ ] Improve error messages with actionable suggestions
-[ ] Add progress indicators for long-running operations
-[ ] Implement interactive mode for generators with prompts
-[ ] Add colorized output for better readability
-[ ] Implement verbose mode for debugging
-[ ] Add support for configuration presets
-[ ] Improve help text and command descriptions
-[ ] Implement command suggestions for mistyped commands
+- [x] Document the pass-through behaviour for arbitrary CDK flags
+- [ ] Progress indicators for long-running operations
+- [ ] Colorized, summarized output instead of raw CDK CLI passthrough

@@ -1,90 +1,130 @@
 # Contributing
 
-PR's are are welcome and encouraged in this repository. Read this document to see how to contribute.
+Pull requests are welcome. This document covers everything you need to get from a clone to a merged
+change.
 
-## Table of Contents
+## Table of contents
 
-- [Project Structure](#project-structure)
-- [Building a Plugin](#building-a-plugin)
-- [Running Unit Tests](#running-unit-tests)
-- [Running e2e Tests](#running-e2e-tests)
-- [Testing Locally](#testing-locally)
-- [Pull Requests](#pull-requests)
+- [Prerequisites](#prerequisites)
+- [Setup](#setup)
+- [Everyday commands](#everyday-commands)
+- [Project structure](#project-structure)
+- [Testing the plugin in a real workspace](#testing-the-plugin-in-a-real-workspace)
+- [Adding a generator or executor](#adding-a-generator-or-executor)
+- [Commit messages](#commit-messages)
+- [Pull requests](#pull-requests)
+- [Releasing](#releasing)
 
-## Project Structure
+## Prerequisites
 
-This project is built with Nx and follows the standard project structure. Visit the [Getting Started](https://nx.dev/react/getting-started/what-is-nx) guide to familiarize yourself with Nx workspaces.
+- Node.js as pinned in [`.nvmrc`](./.nvmrc) (`nvm use` picks it up); minimum `20.19`
+- npm 10 or newer
 
-This workspace uses the Nx CLI with npm 6.x
+## Setup
 
-## Building a Plugin
-
-After cloning the project, to install the dependencies, run:
-
-```
-npm i
-```
-
-To build a plugin, run:
-
-```
-npm run build {plugin}
+```shell
+git clone https://github.com/WolfSoko/nx-aws-cdk-v2.git
+cd nx-aws-cdk-v2
+npm ci --legacy-peer-deps
 ```
 
-## Running Unit Tests
+`--legacy-peer-deps` is required: the Angular DevKit packages pulled in by the Nx devkit declare peer
+ranges npm cannot satisfy strictly. Plain `npm ci` will fail.
 
-To run unit tests for a plugin, run:
+## Everyday commands
 
-```
-npm run test {plugin}
-```
+| Command                 | What it does                                                                  |
+| ----------------------- | ----------------------------------------------------------------------------- |
+| `npm run check`         | Lint, unit tests and build for every project — run this before pushing.       |
+| `npm run affected`      | The same three targets, but only for what your branch changed (what CI runs). |
+| `npm test`              | Unit tests for the plugin (`nx test aws-cdk-v2`).                             |
+| `npm run lint`          | Lint the plugin.                                                              |
+| `npm run build:aws-cdk` | Build the plugin into `dist/packages/aws-cdk-v2`.                             |
+| `npm run e2e:aws-cdk`   | The e2e suite; rebuilds the plugin first.                                     |
+| `npm run format`        | Format with Prettier.                                                         |
+| `npm run format:check`  | Verify formatting — CI fails if this does.                                    |
 
-## Running e2e Tests
+Run a single unit test file or test name:
 
-To run e2e tests for a plugin, run:
-
-```
-npm run e2e {plugin}
-```
-
-## Testing Locally
-
-To test a plugin locally, build the plugin:
-
-```
-npm run build {plugin}
-```
-
-Next, navigate to the build output directory:
-
-```
-cd dist/packages/{plugin}
+```shell
+npx nx test aws-cdk-v2 --testFile=packages/aws-cdk-v2/src/executors/deploy/deploy.spec.ts
+npx nx test aws-cdk-v2 -- -t "run cdk deploy command"
 ```
 
-Next, if you want to test the plugin on a project that uses Yarn, run:
+The e2e suite spins up a real Nx workspace under `tmp/` and runs real `nx` and `cdk` commands, so it
+is slow (each test has a 120s timeout) and needs network access. It never contacts AWS: the `deploy`
+test replaces the workspace's `cdk` binary with a stub that logs its arguments, and the `synth` test
+runs the real CLI but only synthesizes locally.
 
-```
-yarn link
-```
+## Project structure
 
-If you want to test the plugin on a project that uses NPM, run:
+See [docs/architecture.md](./docs/architecture.md) for the full picture. The short version:
 
-```
-npm link
-```
-
-Finally, in the project that you want to test, run:
-
-```
-yarn link @wolsok/{plugin}
+```text
+packages/aws-cdk-v2/    # the published plugin
+e2e/aws-cdk-v2-e2e/     # e2e suite
+docs/                   # consumer documentation
 ```
 
-Or:
+The workspace layout is non-default — apps live in `e2e/`, libraries in `packages/` (see
+`workspaceLayout` in `nx.json`).
 
+## Testing the plugin in a real workspace
+
+```shell
+npm run build:aws-cdk
+npm run link:aws-cdk        # cd dist/packages/aws-cdk-v2 && npm link
 ```
-npm link @wolsok/{plugin}
+
+Then, in the workspace you want to try it in:
+
+```shell
+npm link @wolsok/nx-aws-cdk-v2
+nx g @wolsok/nx-aws-cdk-v2:application my-app
 ```
 
-# Pull Requests
+Re-run `npm run build:aws-cdk` after every change — the link points at the build output, not at the
+sources.
 
-Ensure that you have completed the PR checklist in the [pull request template](PULL_REQUEST_TEMPLATE.md) prior to opening a pull request.
+## Adding a generator or executor
+
+1. Create a directory under `src/generators/<name>` or `src/executors/<name>` containing the
+   implementation, `schema.json`, `schema.d.ts` and a co-located `.spec.ts`.
+2. Register it in `generators.json` or `executors.json`.
+3. Export it from `src/index.ts`.
+4. Add e2e coverage in `e2e/aws-cdk-v2-e2e/tests/aws-cdk.spec.ts` if it is user facing.
+5. Document it in the [package README](./packages/aws-cdk-v2/README.md) and in
+   [docs/api-documentation.md](./docs/api-documentation.md).
+
+The `@nx/nx-plugin-checks` lint rule validates that the manifests point at files that exist and that
+the schemas are well formed, so `npm run lint` catches a half-registered generator.
+
+## Commit messages
+
+Commits follow [Conventional Commits](https://www.conventionalcommits.org/) and are validated by
+commitlint. Allowed types: `build`, `chore`, `ci`, `docs`, `feat`, `fix`, `perf`, `refactor`,
+`revert`, `style`, `test`, `sample`.
+
+```text
+feat(executors): add a diff executor
+fix(generators): place the app in the configured apps directory
+docs: document the pass-through behaviour for cdk flags
+```
+
+## Pull requests
+
+Fill in the [pull request template](./.github/PULL_REQUEST_TEMPLATE.md) and make sure
+`npm run check` passes. CI runs lint, unit tests and build for affected projects plus the full e2e
+suite.
+
+## Releasing
+
+Maintainers only. Publishing is driven by GitHub releases:
+
+- A **release** publishes to npm under the `latest` tag.
+- A **pre-release** publishes under the `beta` tag.
+
+Both workflows set the package version from the release tag name and publish through npm OIDC trusted
+publishing, so no npm token is stored in the repository. See
+[`.github/workflows/release.yml`](./.github/workflows/release.yml) and
+[`.github/workflows/pre_release.yml`](./.github/workflows/pre_release.yml).
