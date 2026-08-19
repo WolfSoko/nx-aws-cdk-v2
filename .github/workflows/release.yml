@@ -15,7 +15,7 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       # No registry-url here: actions/setup-node writes an _authToken line to
       # .npmrc referencing NODE_AUTH_TOKEN whenever registry-url is set, even
