@@ -48,6 +48,8 @@ the [package README](../packages/aws-cdk-v2/README.md) if you are using the plug
 ## Build and CI/CD
 
 - [x] Automated release to npm via OIDC trusted publishing
+- [x] Automatic GitHub release creation from Conventional Commits once CI is green on `main`
+      (semantic-release)
 - [x] Formatting and lint checks in CI
 - [x] Automated dependency updates (Renovate), grouped for Nx and the CDK
 - [x] e2e suite running in CI

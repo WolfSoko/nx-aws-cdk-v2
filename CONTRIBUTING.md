@@ -119,12 +119,24 @@ suite.
 
 ## Releasing
 
-Maintainers only. Publishing is driven by GitHub releases:
+Releases to npm under the `latest` tag are automatic. Once CI is green on `main`,
+[`.github/workflows/auto-release.yml`](./.github/workflows/auto-release.yml) runs
+[semantic-release](https://semantic-release.gitbook.io/), which looks at the Conventional Commits
+since the last release to decide whether a new version is warranted and, if so, creates the git tag
+and GitHub release (release notes are generated from those commits — see
+[`.releaserc.json`](./.releaserc.json) for how commit types map to version bumps and changelog
+sections). A `feat` triggers a minor release, `fix`/`perf`/`revert` a patch release, and a
+`BREAKING CHANGE` footer a major release; other types (`docs`, `chore`, `refactor`, `style`, `test`,
+`build`, `ci`, `sample`) don't publish anything on their own.
 
-- A **release** publishes to npm under the `latest` tag.
-- A **pre-release** publishes under the `beta` tag.
+Creating that GitHub release is what triggers `release.yml`, which sets the package version from the
+release tag and publishes through npm OIDC trusted publishing (no npm token stored in the repo).
 
-Both workflows set the package version from the release tag name and publish through npm OIDC trusted
-publishing, so no npm token is stored in the repository. See
-[`.github/workflows/release.yml`](./.github/workflows/release.yml) and
-[`.github/workflows/pre_release.yml`](./.github/workflows/pre_release.yml).
+Creating the release itself requires a personal access token stored as the `RELEASE_GH_TOKEN`
+repository secret (`repo` scope, or a fine-grained token with `contents: write` on this repo) — the
+default `GITHUB_TOKEN` can't be used because GitHub does not start other workflow runs (like
+`release.yml`) from events created by the default token, which would silently break npm publishing.
+
+Beta pre-releases are still manual: publishing under the `beta` npm tag is driven by manually creating
+a GitHub pre-release, which triggers
+[`.github/workflows/pre_release.yml`](./.github/workflows/pre_release.yml) the same way.
