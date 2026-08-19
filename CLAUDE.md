@@ -19,7 +19,9 @@ Install deps: `npm ci --legacy-peer-deps` (plain `npm ci`/`npm i` fails on peer 
 - `npm run format` / `npm run format:check` — Prettier via Nx; CI fails on unformatted files
 - Run a single unit test file: `npx nx test aws-cdk-v2 --testFile=<path>` or use Jest's `-t "<test name>"` via `npx nx test aws-cdk-v2 -- -t "<pattern>"`
 
-CI (`.github/workflows/ci.yml`) has two jobs: `main` runs `nx format:check` then `npx nx affected -t lint test build`; `e2e` runs the full e2e suite. Nx Cloud is unreachable in some sandboxes — prefix commands with `NX_NO_CLOUD=true` if the run fails on "Unable to retrieve Nx Cloud bundle".
+CI (`.github/workflows/ci.yml`) is a single job that runs `nx format:check` then `npx nx affected -t lint test build e2e-ci` (e2e is atomized into one task per spec file — see the `@nx/jest/plugin` `ciTargetName` option in `nx.json`), distributed across Nx Cloud's hosted agents. `e2e-ci` requires live Nx Cloud connectivity and won't run with `NX_NO_CLOUD=true`; use the plain `e2e` target (`npm run e2e:aws-cdk`) instead when Nx Cloud is unreachable. Nx Cloud is unreachable in some sandboxes — prefix other commands with `NX_NO_CLOUD=true` if the run fails on "Unable to retrieve Nx Cloud bundle".
+
+Once CI is green on `main`, `.github/workflows/release.yml` runs `node tools/release.js`, which drives Nx Release: versions the plugin from Conventional Commits, builds it, publishes to npm via OIDC, and creates a GitHub release — all in one job, no-op when nothing release-worthy landed. See the "Releasing" section in `CONTRIBUTING.md`.
 
 Local plugin testing (per CONTRIBUTING.md): build the plugin, then `npm run link:aws-cdk`, then in a test workspace `npm link @wolsok/nx-aws-cdk-v2`.
 

@@ -119,24 +119,28 @@ suite.
 
 ## Releasing
 
-Releases to npm under the `latest` tag are automatic. Once CI is green on `main`,
-[`.github/workflows/auto-release.yml`](./.github/workflows/auto-release.yml) runs
-[semantic-release](https://semantic-release.gitbook.io/), which looks at the Conventional Commits
-since the last release to decide whether a new version is warranted and, if so, creates the git tag
-and GitHub release (release notes are generated from those commits — see
-[`.releaserc.json`](./.releaserc.json) for how commit types map to version bumps and changelog
-sections). A `feat` triggers a minor release, `fix`/`perf`/`revert` a patch release, and a
+Releases to npm under the `latest` tag are automatic, driven by
+[Nx Release](https://nx.dev/docs/features/manage-releases). Once CI is green on `main`,
+[`.github/workflows/release.yml`](./.github/workflows/release.yml) runs `node tools/release.js`,
+which looks at the Conventional Commits since the last release to decide whether a new version is
+warranted and, if so, versions the plugin, builds it, publishes it to npm via OIDC trusted publishing
+(no npm token stored in the repo) and creates a GitHub release with generated notes — all in that one
+job. It's a no-op when nothing release-worthy has landed.
+
+Commit types map to version bumps and changelog sections in the `release` block of
+[`nx.json`](./nx.json): `feat` triggers a minor release, `fix`/`perf`/`revert` a patch release, and a
 `BREAKING CHANGE` footer a major release; other types (`docs`, `chore`, `refactor`, `style`, `test`,
-`build`, `ci`, `sample`) don't publish anything on their own.
+`build`, `ci`, `sample`) don't publish anything on their own. Release notes are only published to the
+GitHub release, not to `CHANGELOG.md` (`release.changelog.workspaceChangelog.file: false`) — that file
+stays hand-maintained.
 
-Creating that GitHub release is what triggers `release.yml`, which sets the package version from the
-release tag and publishes through npm OIDC trusted publishing (no npm token stored in the repo).
+`tools/release.js` runs `nx release`'s version, changelog and publish steps as separate calls (with a
+build in between, so the published package picks up the bumped version) instead of the single
+composite `nx release` command, and does the version-bump git commit/tag/push itself — see the
+comments in that file for why. This also means the whole flow needs only the default `GITHUB_TOKEN`
+(`contents: write` to push the release commit/tag, `id-token: write` for npm OIDC): unlike a design
+where a created GitHub release triggers a _second_ workflow to publish, there's no second workflow
+here for GitHub to refuse to start from a `GITHUB_TOKEN`-authored event, so no personal access token
+is needed.
 
-Creating the release itself requires a personal access token stored as the `RELEASE_GH_TOKEN`
-repository secret (`repo` scope, or a fine-grained token with `contents: write` on this repo) — the
-default `GITHUB_TOKEN` can't be used because GitHub does not start other workflow runs (like
-`release.yml`) from events created by the default token, which would silently break npm publishing.
-
-Beta pre-releases are still manual: publishing under the `beta` npm tag is driven by manually creating
-a GitHub pre-release, which triggers
-[`.github/workflows/pre_release.yml`](./.github/workflows/pre_release.yml) the same way.
+There is no beta/pre-release channel — this plugin doesn't publish prereleases.
