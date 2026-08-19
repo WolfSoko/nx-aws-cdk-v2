@@ -26,20 +26,49 @@ permissions:
   contents: read
 
 jobs:
-  release:
-    name: Version, build & publish
+  check:
+    name: Check commit is still current
     if: github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
+    outputs:
+      stale: ${{ steps.check.outputs.stale }}
+    steps:
+      # No checkout needed: this only compares SHAs via the API. If main has
+      # moved past the commit this CI run validated, skip - the workflow_run
+      # triggered by whatever landed next will release that commit instead.
+      - id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          current_sha=$(gh api "repos/${{ github.repository }}/git/ref/heads/main" --jq .object.sha)
+          if [ "$current_sha" = "${{ github.event.workflow_run.head_sha }}" ]; then
+            echo "stale=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "stale=true" >> "$GITHUB_OUTPUT"
+            echo "main is now at $current_sha, past the validated ${{ github.event.workflow_run.head_sha }}; leaving this to the newer run."
+          fi
+
+  release:
+    name: Version, build & publish
+    needs: check
+    if: needs.check.outputs.stale != 'true'
+    runs-on: ubuntu-latest
+    # Serialize releases: two CI runs finishing close together must not run
+    # tools/release.js concurrently (racing commits/tags/publishes against
+    # each other). Never cancel a release that's already in progress.
+    concurrency:
+      group: release-main
+      cancel-in-progress: false
     permissions:
       contents: write
       id-token: write # needed for npm OIDC trusted publishing
     steps:
-      # A plain branch checkout (not the triggering workflow_run's head_sha)
-      # so HEAD is on main with an upstream to push the release commit and
-      # tag to, rather than a detached HEAD.
+      # Pinned to the exact commit CI validated (not just "main"), so a
+      # commit that landed after this CI run finished - and hasn't been
+      # tested - never gets released.
       - uses: actions/checkout@v7
         with:
-          ref: main
+          ref: ${{ github.event.workflow_run.head_sha }}
           fetch-depth: 0
 
       - uses: actions/setup-node@v7

@@ -28,6 +28,8 @@ function run(command) {
     return;
   }
 
+  run('npx nx build aws-cdk-v2');
+
   // releaseChangelog's own git-commit step only commits changes *it* makes
   // (i.e. a changelog file), which we don't write (see nx.json
   // release.changelog.workspaceChangelog.file: false) - it has nothing of
@@ -35,13 +37,19 @@ function run(command) {
   // version bump releaseVersion just staged. So the commit/tag/push for the
   // version bump is done here instead, and releaseChangelog below is only
   // used for changelog notes + the GitHub release, not git operations.
+  //
+  // This runs after the build on purpose: if the build fails, nothing has
+  // been committed, tagged or pushed yet, so the release can simply be
+  // retried. Pushing the tag first would leave a released-looking tag
+  // pointing at a version that was never actually published.
   if (!dryRun) {
     run(`git commit -m "chore(release): publish ${workspaceVersion}"`);
     run(`git tag ${workspaceVersion}`);
-    run('git push --follow-tags');
+    // Explicit refspec rather than a bare `git push`: the release workflow
+    // checks out a specific commit (detached HEAD), not a branch, so there
+    // is no upstream to push to implicitly.
+    run('git push origin HEAD:main --follow-tags');
   }
-
-  run('npx nx build aws-cdk-v2');
 
   await releaseChangelog({
     releaseGraph,
