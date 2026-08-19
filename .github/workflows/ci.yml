@@ -42,7 +42,7 @@ jobs:
       # devkit pulls in declare peer ranges that npm cannot satisfy strictly.
       - run: npm ci --legacy-peer-deps
 
-      - uses: nrwl/nx-set-shas@v4
+      - uses: nrwl/nx-set-shas@v5
 
       - run: npx nx format:check
 
