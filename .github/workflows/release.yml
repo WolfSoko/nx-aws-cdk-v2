@@ -11,8 +11,15 @@ name: Release
 # GitHub release that a second workflow reacts to) is deliberate: GitHub does
 # not start other workflow runs from events created by the default
 # GITHUB_TOKEN, so a split flow would need a personal access token just to
-# bridge the two workflows. Keeping it to one job needs only the default
-# token.
+# bridge the two workflows.
+#
+# A personal access token is needed here regardless, for a different reason:
+# main has a ruleset requiring the CI status check, which a direct push -
+# including this job's release commit - can never itself satisfy. The
+# RELEASE_GH_TOKEN secret authenticates the push as the repo owner's account
+# instead of the default GITHUB_TOKEN's GitHub Actions identity, so it can be
+# added to the ruleset's bypass list (Settings -> Rules -> Rulesets) without
+# granting a blanket bypass to the GitHub Actions app.
 on:
   workflow_run:
     workflows: [CI]
@@ -65,11 +72,14 @@ jobs:
     steps:
       # Pinned to the exact commit CI validated (not just "main"), so a
       # commit that landed after this CI run finished - and hasn't been
-      # tested - never gets released.
+      # tested - never gets released. The token makes the later git push
+      # authenticate as the repo owner's account (see the top-of-file
+      # comment) rather than the default GITHUB_TOKEN.
       - uses: actions/checkout@v7
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
           fetch-depth: 0
+          token: ${{ secrets.RELEASE_GH_TOKEN }}
 
       - uses: actions/setup-node@v7
         with:
@@ -91,7 +101,7 @@ jobs:
       - name: Version, build, changelog & publish
         run: node tools/release.js
         env:
-          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ secrets.RELEASE_GH_TOKEN }}
 
       # Self-Healing CI: apply Nx Cloud's suggested fixes for failing tasks.
       # Learn more at https://nx.dev/ci/features/self-healing-ci
