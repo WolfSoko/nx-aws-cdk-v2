@@ -1,6 +1,6 @@
 {
   "name": "@wolsok/nx-aws-cdk-v2",
-  "version": "2.6.0",
+  "version": "2.7.0",
   "description": "Nx plugin to generate, synthesize, deploy and destroy AWS CDK v2 applications inside an Nx workspace.",
   "main": "src/index.js",
   "types": "src/index.d.ts",
