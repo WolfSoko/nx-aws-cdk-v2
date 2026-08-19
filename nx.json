@@ -32,6 +32,10 @@
       "dependsOn": ["aws-cdk-v2:build"],
       "cache": true
     },
+    "e2e-ci--**/*": {
+      "dependsOn": ["aws-cdk-v2:build"],
+      "cache": true
+    },
     "@nx/jest:jest": {
       "cache": true,
       "inputs": ["default", "^default", "{workspaceRoot}/jest.preset.js"],
@@ -43,6 +47,11 @@
           "ci": true,
           "codeCoverage": true
         }
+      }
+    },
+    "nx-release-publish": {
+      "options": {
+        "packageRoot": "dist/packages/{projectName}"
       }
     }
   },
@@ -74,5 +83,36 @@
       "include": ["**/*"]
     }
   ],
+  "release": {
+    "projects": ["aws-cdk-v2"],
+    "releaseTag": {
+      "pattern": "{version}"
+    },
+    "version": {
+      "conventionalCommits": true
+    },
+    "conventionalCommits": {
+      "types": {
+        "feat": { "semverBump": "minor" },
+        "fix": { "semverBump": "patch" },
+        "perf": { "semverBump": "patch" },
+        "revert": { "semverBump": "patch" },
+        "refactor": { "semverBump": "none" },
+        "docs": { "semverBump": "none" },
+        "style": { "semverBump": "none" },
+        "test": { "semverBump": "none" },
+        "build": { "semverBump": "none" },
+        "ci": { "semverBump": "none" },
+        "chore": { "semverBump": "none" },
+        "sample": { "semverBump": "none" }
+      }
+    },
+    "changelog": {
+      "workspaceChangelog": {
+        "createRelease": "github",
+        "file": false
+      }
+    }
+  },
   "nxCloudId": "671a4aa0e85b0ab04b22bbf3"
 }

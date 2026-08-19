@@ -19,7 +19,7 @@ env:
 
 jobs:
   main:
-    name: Lint, test & build
+    name: Lint, test, build & e2e
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -27,11 +27,12 @@ jobs:
           filter: tree:0
           fetch-depth: 0
 
-      # This enables task distribution via Nx Cloud
-      # Run this command as early as possible, before dependencies are installed
+      # Distribute the affected tasks below across Nx Cloud's hosted agents
+      # (the "linux-medium-js" launch template) - Nx Cloud provisions and
+      # tears them down itself, no self-hosted runner job needed. Run this
+      # as early as possible, before dependencies are installed.
       # Learn more at https://nx.dev/ci/reference/nx-cloud-cli#npx-nxcloud-startcirun
-      # Uncomment this line to enable task distribution
-      # - run: npx nx-cloud start-ci-run --distribute-on="3 linux-medium-js" --stop-agents-after="build"
+      - run: npx nx-cloud start-ci-run --distribute-on="3 linux-medium-js" --stop-agents-after="e2e-ci"
 
       - uses: actions/setup-node@v7
         with:
@@ -47,22 +48,14 @@ jobs:
       - run: npx nx format:check
 
       # Nx Affected runs only tasks affected by the changes in this PR/commit.
+      # `e2e-ci` atomizes the e2e suite into one task per spec file (see the
+      # @nx/jest/plugin ciTargetName option in nx.json) so it distributes
+      # across agents instead of running as one long task.
       # Learn more: https://nx.dev/ci/features/affected
-      - run: npx nx affected -t lint test build
+      - run: npx nx affected -t lint test build e2e-ci
 
-  e2e:
-    name: e2e
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: actions/setup-node@v7
-        with:
-          node-version-file: .nvmrc
-          cache: npm
-
-      - run: npm ci --legacy-peer-deps
-
-      # `e2e` depends on `aws-cdk-v2:build` (see nx.json targetDefaults), so the
-      # plugin is rebuilt and installed into a throwaway workspace automatically.
-      - run: npm run e2e:aws-cdk
+      # Self-Healing CI: apply Nx Cloud's suggested fixes for failing tasks.
+      # Learn more at https://nx.dev/ci/features/self-healing-ci
+      - name: Self-Healing CI
+        if: always()
+        run: npx nx fix-ci

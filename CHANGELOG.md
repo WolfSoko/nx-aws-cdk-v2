@@ -11,10 +11,11 @@ Published versions and their release notes are also on the
 
 ### Added
 
-- Automatic GitHub release creation: once CI is green on `main`, `semantic-release` inspects the
-  Conventional Commits since the last release and, if warranted, creates the git tag and GitHub
-  release that trigger the existing npm publish workflow. See the "Releasing" section in
+- Automatic releases: once CI is green on `main`, Nx Release inspects the Conventional Commits since
+  the last release and, if warranted, versions the plugin, builds it, publishes it to npm and creates
+  a GitHub release with generated notes, all in one CI job. See the "Releasing" section in
   [CONTRIBUTING.md](./CONTRIBUTING.md).
+- Distributed CI task execution and self-healing CI via Nx Cloud agents.
 - Public entry point: generators, executors and the CDK version constants are now exported from
   `@wolsok/nx-aws-cdk-v2`, together with their option types.
 - `profile` and `context` are documented options on all four executors, so they show up in

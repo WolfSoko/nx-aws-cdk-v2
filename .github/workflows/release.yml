@@ -1,57 +1,100 @@
 name: Release
 
+# Runs once the CI workflow finishes successfully on main (i.e. lint, unit
+# tests, build and e2e are all green). Nx Release inspects the Conventional
+# Commits since the last release to decide whether a release is warranted,
+# and if so versions the plugin, builds it, publishes it to npm via OIDC
+# trusted publishing, and creates a GitHub release with generated notes -
+# all in this one job. It is a no-op when nothing release-worthy has landed.
+#
+# Doing version, build and publish in a single job (rather than creating a
+# GitHub release that a second workflow reacts to) is deliberate: GitHub does
+# not start other workflow runs from events created by the default
+# GITHUB_TOKEN, so a split flow would need a personal access token just to
+# bridge the two workflows. Keeping it to one job needs only the default
+# token.
 on:
-  release:
-    types: [released]
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
 
 env:
   NX_CLOUD_ACCESS_TOKEN: ${{ secrets.NX_CLOUD_ACCESS_TOKEN }}
 
 permissions:
   contents: read
-  id-token: write
 
 jobs:
-  publish:
+  check:
+    name: Check commit is still current
+    if: github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
+    outputs:
+      stale: ${{ steps.check.outputs.stale }}
     steps:
-      - uses: actions/checkout@v7
+      # No checkout needed: this only compares SHAs via the API. If main has
+      # moved past the commit this CI run validated, skip - the workflow_run
+      # triggered by whatever landed next will release that commit instead.
+      - id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          current_sha=$(gh api "repos/${{ github.repository }}/git/ref/heads/main" --jq .object.sha)
+          if [ "$current_sha" = "${{ github.event.workflow_run.head_sha }}" ]; then
+            echo "stale=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "stale=true" >> "$GITHUB_OUTPUT"
+            echo "main is now at $current_sha, past the validated ${{ github.event.workflow_run.head_sha }}; leaving this to the newer run."
+          fi
 
-      # No registry-url here: actions/setup-node writes an _authToken line to
-      # .npmrc referencing NODE_AUTH_TOKEN whenever registry-url is set, even
-      # though it's unused now. That placeholder makes npm think token auth is
-      # already configured, so it skips the OIDC trusted-publishing handshake
-      # (see actions/setup-node#1551). npm publishes to the default registry
-      # (registry.npmjs.org) without it.
-      - name: Use Node.js
-        uses: actions/setup-node@v7
+  release:
+    name: Version, build & publish
+    needs: check
+    if: needs.check.outputs.stale != 'true'
+    runs-on: ubuntu-latest
+    # Serialize releases: two CI runs finishing close together must not run
+    # tools/release.js concurrently (racing commits/tags/publishes against
+    # each other). Never cancel a release that's already in progress.
+    concurrency:
+      group: release-main
+      cancel-in-progress: false
+    permissions:
+      contents: write
+      id-token: write # needed for npm OIDC trusted publishing
+    steps:
+      # Pinned to the exact commit CI validated (not just "main"), so a
+      # commit that landed after this CI run finished - and hasn't been
+      # tested - never gets released.
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
           cache: npm
 
-      - name: Install dependencies
-        run: npm ci --legacy-peer-deps
-        env:
-          CI: true
+      - run: npm ci --legacy-peer-deps
 
       # OIDC trusted publishing requires npm >=11.5.1; pin to a known-good
       # major so a future npm release can't silently change publish behavior.
       - name: Update npm
         run: npm install -g "npm@>=11.5.1 <12"
 
-      # --allow-same-version: `npm version X` exits 1 with "Version not changed"
-      # when package.json already declares X. The checked-in version is kept in
-      # sync with the released tag, so that is the normal case, not an error.
-      # --no-git-tag-version: this is a detached checkout of the tag that gets
-      # thrown away, so there is no point committing and tagging in it.
-      - name: Set Version
-        run: npm --prefix ./packages/aws-cdk-v2 version ${{ github.ref_name }} --allow-same-version --no-git-tag-version
+      - name: Configure git identity for the release commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-      - name: build
-        run: npm run build:aws-cdk
+      - name: Version, build, changelog & publish
+        run: node tools/release.js
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
 
-      # Publishes via npm's OIDC trusted publishing (no NPM_TOKEN needed).
-      # Requires this repo + workflow to be configured as a trusted publisher
-      # for the package on npmjs.com.
-      - name: deploy
-        run: npm publish ./dist/packages/aws-cdk-v2 --access public
+      # Self-Healing CI: apply Nx Cloud's suggested fixes for failing tasks.
+      # Learn more at https://nx.dev/ci/features/self-healing-ci
+      - name: Self-Healing CI
+        if: always()
+        run: npx nx fix-ci
