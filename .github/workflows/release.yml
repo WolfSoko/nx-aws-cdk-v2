@@ -102,9 +102,3 @@ jobs:
         run: node tools/release.js
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASE_GH_TOKEN }}
-
-      # Self-Healing CI: apply Nx Cloud's suggested fixes for failing tasks.
-      # Learn more at https://nx.dev/ci/features/self-healing-ci
-      - name: Self-Healing CI
-        if: always()
-        run: npx nx fix-ci
