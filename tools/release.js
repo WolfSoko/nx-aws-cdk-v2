@@ -43,7 +43,12 @@ function run(command) {
   // retried. Pushing the tag first would leave a released-looking tag
   // pointing at a version that was never actually published.
   if (!dryRun) {
-    run(`git commit -m "chore(release): publish ${workspaceVersion}"`);
+    // [skip ci]: this push is authenticated as a real account (RELEASE_GH_TOKEN,
+    // not the default GITHUB_TOKEN - see release.yml), and GitHub only
+    // suppresses workflow triggering for pushes made with the default token.
+    // Without this, the push would trigger ci.yml, which on success would
+    // trigger release.yml again for this same release commit.
+    run(`git commit -m "chore(release): publish ${workspaceVersion} [skip ci]"`);
     run(`git tag ${workspaceVersion}`);
     // Explicit refspec rather than a bare `git push`: the release workflow
     // checks out a specific commit (detached HEAD), not a branch, so there
