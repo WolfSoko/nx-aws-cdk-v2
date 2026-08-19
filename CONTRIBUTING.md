@@ -137,10 +137,14 @@ stays hand-maintained.
 `tools/release.js` runs `nx release`'s version, changelog and publish steps as separate calls (with a
 build in between, so the published package picks up the bumped version) instead of the single
 composite `nx release` command, and does the version-bump git commit/tag/push itself — see the
-comments in that file for why. This also means the whole flow needs only the default `GITHUB_TOKEN`
-(`contents: write` to push the release commit/tag, `id-token: write` for npm OIDC): unlike a design
-where a created GitHub release triggers a _second_ workflow to publish, there's no second workflow
-here for GitHub to refuse to start from a `GITHUB_TOKEN`-authored event, so no personal access token
-is needed.
+comments in that file for why.
+
+Pushing that release commit needs a personal access token stored as the `RELEASE_GH_TOKEN` repository
+secret. `main` has a ruleset requiring the CI status check on every push, which a direct push —
+including this job's own release commit — can never itself satisfy, so it has to authenticate as an
+account on the ruleset's bypass list (Settings → Rules → Rulesets) rather than as the default
+`GITHUB_TOKEN`'s GitHub Actions identity, which isn't on that list. `RELEASE_GH_TOKEN` is a personal
+access token for the repo owner's account, added individually to the bypass list — not a blanket
+bypass for GitHub Actions.
 
 There is no beta/pre-release channel — this plugin doesn't publish prereleases.
